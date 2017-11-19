@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+
+{% block title %}Doc{% endblock %}
+
+{% block top_javascript %}
+
+<script src="{{ url_for('static', filename='js/renderjson.js') }}"></script>
+
+<script type="text/javascript">
+
+$(function() {
+
+    $.get("/{{ collection_name }}/doc/{{doc_id}}/json", function( data ) {
+      document.getElementById("doc").appendChild(
+        renderjson.set_show_by_default(true)
+                  .set_show_to_level(1)
+                  .set_sort_objects(true)
+                  .set_icons('+', '-')
+                  .set_max_string_length(100)(data));
+    });
+
+  });
+
+
+</script>
+{% endblock %}
+
+{%  block css %}
+<link rel=stylesheet type=text/css
+          href="{{ url_for('static', filename='index.css') }}">
+    <style>
+      .renderjson a { text-decoration: none; }
+      .renderjson .disclosure { color: crimson;
+                                font-size: 150%; }
+      .renderjson .syntax { color: grey; }
+      .renderjson .string { color: darkred; }
+      .renderjson .number { color: darkcyan; }
+      .renderjson .boolean { color: blueviolet; }
+      .renderjson .key    { color: darkblue; }
+      .renderjson .keyword { color: blue; }
+      .renderjson .object.syntax { color: lightseagreen; }
+      .renderjson .array.syntax  { color: orange; }
+    </style>
+{% endblock %}
+
+
+{% block content %}
+
+<h2>Collection: {{collection_name}}, Doc: {{doc_id}}</h2>
+<div id="doc">
+</div>
+
+{% endblock %}

@@ -1,0 +1,15 @@
+#query {
+	font-size: 1.3em;
+	text-align: center;
+}
+
+#query table {
+    margin-left:auto;
+    margin-right:auto;
+}
+
+#plot-div {
+    width: 800px;
+    margin-left:auto;
+    margin-right:auto;
+}

@@ -1,0 +1,101 @@
+{% extends "layout.html" %}
+
+{% block title %}{{db_name}} Query{% endblock %}
+
+{% block top_javascript %}
+
+<script src="//cdn.datatables.net/1.10.12/js/jquery.dataTables.min.js"></script>
+<script src="//cdn.datatables.net/buttons/1.2.1/js/dataTables.buttons.min.js"></script>
+<script src="//cdn.datatables.net/buttons/1.2.1/js/buttons.flash.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/jszip/2.5.0/jszip.min.js"></script>
+<script src="//cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/pdfmake.min.js"></script>
+<script src="//cdn.rawgit.com/bpampuch/pdfmake/0.1.18/build/vfs_fonts.js"></script>
+<script src="//cdn.datatables.net/buttons/1.2.1/js/buttons.html5.min.js"></script>
+<script src="//cdn.datatables.net/buttons/1.2.1/js/buttons.print.min.js"></script>
+
+<script type="text/javascript">
+$(function() {
+    $('input[type=submit]').button();
+    $("#select-collection" ).selectmenu();
+    $('#results-table').DataTable({
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv', 'excel', 'pdf', 'print'
+        ]
+    } );
+  });
+</script>
+{% endblock %}
+
+{%  block css %}
+<link rel=stylesheet type=text/css
+          href="{{ url_for('static', filename='index.css') }}">
+<link rel=stylesheet type=text/css
+          href="https://cdn.datatables.net/1.10.12/css/jquery.dataTables.min.css">
+<link rel=stylesheet type=text/css
+          href="https://cdn.datatables.net/buttons/1.2.1/css/buttons.dataTables.min.css">
+
+
+{% endblock %}
+
+
+{% block content %}
+<h1>Garnet stability prediction</h1>
+<p>Enter species in the C (24c), A (16a) and D (24d) sites of the prototypical C<sub>3</sub>A<sub>2</sub>D<sub>3</sub>O<sub>12</sub> garnet crystal. Examples:</p>
+<p>
+    <ul>
+        <li>"Ca2+" means only one type of species (Ca<sup>2+</sup>) is present in the site.</li>
+        <li>"Ca2+:2 Mg2+:1" means Ca<sup>2+</sup> and Mg<sup>2+</sup> are present in the site in the ratio of 2:1.</li>
+    </ul>
+    Only no mixing or 2:1 mixing is allowed in the C and D sites, and only no mixing and 1:1 mixing is allowed in the A sites.
+</p>
+
+<form action="/query" method="get" name="query">
+<p class="query">
+<label>C: </label><input type="text" name="c_string" placeholder="E.g., Ca2+" value="{{c_string}}" size="20">
+<label>A: </label><input type="text" name="a_string" placeholder="E.g., Al3+" value="{{a_string}}" size="20">
+<label>D: </label><input type="text" name="d_string" placeholder="E.g., Si4+" value="{{d_string}}" size="20">
+</p>
+<p>
+<input type="submit" name="submit" value="Compute">
+</p>
+</form>
+
+
+{% if results %}
+
+<h1>Results</h1>
+
+<table id="results-table" class="display">
+    <thead>
+    <tr>
+        {% for f in fields %}
+        <th>{{f}}</th>
+        {% endfor %}
+    </tr>
+    </thead>
+    <tbody>
+    {% for r in results %}
+    <tr>
+        {% for f in fields %}
+            {% if f == mapped_names[unique_key] %}
+                <td class="centered">
+                    <a target="_blank" href="/{{collection_name}}/doc/{{r[loop.index0]}}">{{r[loop.index0]|safe}}</a>
+                </td>
+            {% else %}
+                <td class="centered">{{r[loop.index0]|safe}}</td>
+            {% endif %}
+        {% endfor %}
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+
+{% endif %}
+
+{% if error_message %}
+<h2>{{ error_message }}</h2>
+{% endif %}
+
+
+{% endblock %}
