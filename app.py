@@ -1,9 +1,11 @@
 import os
 import pandas as pd
-import serialize_sk as sk
+import sys
 
 from keras.models import model_from_json
 from sklearn.preprocessing import StandardScaler
+import serialize_sk as sk
+
 from monty.serialization import loadfn
 
 from pymatgen import MPRester, Specie, Composition
@@ -50,52 +52,7 @@ GARNET_ELS = {
 }
 SITE_OCCU = {'c': 3, 'a': 2, 'd': 3}
 
-
-# def model_load():
-#     """
-#     Load model and scaler for Ef prediction.
-#     Models are saved in the GarnetModels.json
-#     for each model type:
-#     {
-#     "model": {parameters:model(keras.model).to_json(),
-#               "weights":model(keras.model).get_weights()}
-#     "scaler": serialize_class(scaler(StandardScaler))
-#     }
-#     Serialized in Serialization.ipynb
-#     Args:
-#         model_type (str): type of mdoels
-#             ext_c : Extended model trained on unmix+cmix
-#             ext_a : Extended model trained on unmix+amix
-#             ext_d : Extended model trained on unmix+dmix
-#     Returns:
-#         model (keras.model)
-#         scaler(keras.StandardScaler)
-#
-#     """
-#     models = {}
-#     model_data = loadfn("GarnetModels.json")
-#
-#     for t in ["a", "c", "d"]:
-#         model_json = model_data["ext_" + t]['model']
-#         model = model_from_json(model_json["parameters"])
-#         model.set_weights(model_json["weights"])
-#
-#         def deserialize_class(cls_repr):
-#             cls_repr = sk.decode(cls_repr)
-#             cls_ = getattr(sys.modules[cls_repr['mod']], cls_repr['name'])
-#             cls_init = cls_()
-#             for k, v in cls_repr['attr'].items():
-#                 setattr(cls_init, k, v)
-#             return cls_init
-#         scaler_json = model_data["ext_" + t]['scaler']
-#         scaler = deserialize_class(scaler_json)
-#         models[t] = model, scaler
-#     return models
-#
-#
-# MODELS = model_load()
-
-m = MPRester()
+m = MPRester("xNebFpxTfLhTnnIH")
 
 
 def binary_encode(config, mix_site):
@@ -217,27 +174,25 @@ def get_descriptor_ext(species):
 
     # To sort the c site based on occupancy
     sites = ['c', 'a', 'd']
-    mix_site = [site for site in sites if \
-                len(species[site]) == 2]
+    mix_site = [site for site in sites if len(species[site]) == 2]
     if not mix_site:
-        #unmixed type
+        # unmixed type
         mix_site = 'c'
         input_spe = [el for site in ['c','c','a','d'] for el in species[site]]
     else:
-        #mixed type
+        # mixed type
         mix_site = mix_site[0]
         sites.remove(mix_site)
         spes = species.copy()
-        spes['%s_sorted' % mix_site] = sorted(spes[mix_site],
-                                             key=lambda k: \
-                                                 (spes[mix_site][k], k))
-        input_spe = [el for site in ['%s_sorted' % mix_site] + sites \
+        spes['%s_sorted' % mix_site] = sorted(
+            spes[mix_site], key=lambda k: (spes[mix_site][k], k))
+        input_spe = [el for site in ['%s_sorted' % mix_site] + sites
                      for el in spes[site]]
 
     descriptors = [(get_el_sp(spe).ionic_radius, get_el_sp(spe).X)
                    for spe in input_spe]
     descriptors = list(sum(descriptors, ()))
-    descriptors_config = [descriptors + binary_encode(config, mix_site) \
+    descriptors_config = [descriptors + binary_encode(config, mix_site)
                           for config in range(0, ORDERINGS[mix_site])]
 
     return descriptors_config
@@ -403,8 +358,7 @@ def model_load_single(model_type):
     model = model_from_json(model_json["parameters"])
     model.set_weights(model_json["weights"])
 
-    import serialize_sk as sk
-    import sys
+
     def deserialize_class(cls_repr):
         cls_repr = sk.decode(cls_repr)
         cls_ = getattr(sys.modules[cls_repr['mod']], cls_repr['name'])
@@ -477,13 +431,12 @@ def query():
         species = {"a": a_composition, "d": d_composition, "c": c_composition}
 
         if abs(charge) < 0.1:
-            model, scaler = model_load_single("ext_%s" % mix_site) if mix_site else model_load_single("ext_c")
+            model, scaler = model_load_single("ext_%s" % mix_site) \
+                if mix_site else model_load_single("ext_c")
             inputs = get_descriptor_ext(species)
             form_e = get_form_e_ext(inputs, model, scaler)
             tot_e = get_tote(form_e, species)
             if mix_site:
-                # For mixed samples, include two decomposed unmixed garnets in the pd
-                model, scaler = model_load_single("ext_%s" % mix_site) if mix_site else model_load_single("ext_c")
                 decompose_entries = get_decomposed_entries(species, model,
                                                            scaler)
                 ehull_pred = get_ehull(tot_e=tot_e, species=species,
