@@ -47,3 +47,8 @@ ul {
     margin: auto;
     width: 50%
 }
+
+#results{
+    text-align: center;
+    font-size: 1.2em;
+}

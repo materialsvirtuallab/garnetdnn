@@ -65,39 +65,9 @@ $(function() {
 </form>
 
 
-{% if results %}
-
-<h1>Results</h1>
-
-<table id="results-table" class="display">
-    <thead>
-    <tr>
-        {% for f in fields %}
-        <th>{{f}}</th>
-        {% endfor %}
-    </tr>
-    </thead>
-    <tbody>
-    {% for r in results %}
-    <tr>
-        {% for f in fields %}
-            {% if f == mapped_names[unique_key] %}
-                <td class="centered">
-                    <a target="_blank" href="/{{collection_name}}/doc/{{r[loop.index0]}}">{{r[loop.index0]|safe}}</a>
-                </td>
-            {% else %}
-                <td class="centered">{{r[loop.index0]|safe}}</td>
-            {% endif %}
-        {% endfor %}
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
-
-{% endif %}
-
-{% if error_message %}
-<h2>{{ error_message }}</h2>
+{% if message %}
+<h2>Results</h2>
+<p id="results">{{ message | safe }}</p>
 {% endif %}
 
 
