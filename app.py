@@ -508,5 +508,25 @@ def query():
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(
+        description="""flamyngo is a basic Flask frontend for querying
+        MongoDB collections.""",
+        epilog="Author: Shyue Ping Ong")
 
-    app.run(debug=True)
+    parser.add_argument(
+        "-d", "--debug", dest="debug", action="store_true",
+        help="Whether to run in debug mode.")
+    parser.add_argument(
+        "-hh", "--host", dest="host", type=str, nargs="?",
+        default='0.0.0.0',
+        help="Host in which to run the server. Defaults to 0.0.0.0.")
+    parser.add_argument(
+        "-p", "--port", dest="port", type=int, nargs="?",
+        default=5000,
+        help="Port in which to run the server. Defaults to 5000.")
+
+    args = parser.parse_args()
+
+    os.environ["FLAMYNGO"] = args.config
+    app.run(debug=args.debug, host=args.host, port=args.port)
