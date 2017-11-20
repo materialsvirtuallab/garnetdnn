@@ -1,6 +1,4 @@
 import os
-import warnings
-import numpy as np
 import pandas as pd
 import serialize_sk as sk
 import sys
