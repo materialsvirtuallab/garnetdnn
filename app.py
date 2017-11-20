@@ -505,8 +505,7 @@ def query():
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
-        description="""flamyngo is a basic Flask frontend for querying
-        MongoDB collections.""",
+        description="""Basic web app for garnet deep neural network.""",
         epilog="Author: Shyue Ping Ong")
 
     parser.add_argument(
@@ -522,6 +521,4 @@ if __name__ == "__main__":
         help="Port in which to run the server. Defaults to 5000.")
 
     args = parser.parse_args()
-
-    os.environ["FLAMYNGO"] = args.config
     app.run(debug=args.debug, host=args.host, port=args.port)
