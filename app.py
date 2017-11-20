@@ -1,7 +1,6 @@
 import os
 import pandas as pd
 import serialize_sk as sk
-import sys
 
 from keras.models import model_from_json
 from sklearn.preprocessing import StandardScaler
@@ -400,12 +399,10 @@ def model_load_single(model_type):
     """
     MODELS = loadfn("GarnetModels.json")
 
-
     model_json = MODELS[model_type]['model']
     model = model_from_json(model_json["parameters"])
     model.set_weights(model_json["weights"])
 
-    from sklearn.preprocessing import StandardScaler
     import serialize_sk as sk
     import sys
     def deserialize_class(cls_repr):
