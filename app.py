@@ -21,13 +21,26 @@ def index():
     return make_response(render_template('index.html'))
 
 
-def parse_composition(s):
+def parse_composition(s, ctype):
     toks = s.strip().split()
     if len(toks) == 1:
-        return Composition({toks[0].split(":")[0]: 1})
+        c = Composition({toks[0].split(":")[0]: 1})
     else:
-        return Composition({t.split(":")[0]: float(t.split(":")[1])
-                            for t in toks})
+        c = Composition({t.split(":")[0]: float(t.split(":")[1])
+                         for t in toks})
+        if len(c) != 2:
+            raise ValueError("Bad composition on %s." % ctype)
+        frac = [c.get_atomic_fraction(k) for k in c.keys()]
+        if ctype == "A" and abs(frac[0] - 0.5) > 0.01:
+            raise ValueError("Bad composition on %s. Only 1:1 mixing allowed!" % ctype)
+        elif not (abs(frac[0] - 1.0/3) < 0.01 or abs(frac[1] - 1.0/3) < 0.01):
+            raise ValueError("Bad composition on %s. Only 2:1 mixing allowed!" % ctype)
+    try:
+        for k in c.keys():
+            k.oxi_state
+    except AttributeError:
+        raise ValueError("Oxidation states must be specified for all species!")
+    return c
 
 
 @app.route('/query', methods=['GET'])
@@ -39,9 +52,9 @@ def query():
         a_string = request.args.get("a_string")
         d_string = request.args.get("d_string")
 
-        c_composition = parse_composition(c_string)
-        a_composition = parse_composition(a_string)
-        d_composition = parse_composition(d_string)
+        c_composition = parse_composition(c_string, "C")
+        a_composition = parse_composition(a_string, "A")
+        d_composition = parse_composition(d_string, "D")
 
         charge = -2.0 * 12
         for k in c_composition.keys():
