@@ -40,23 +40,26 @@ $(function() {
 
 
 {% block content %}
-<h1>Garnet stability prediction</h1>
-<p>Enter species in the C (24c), A (16a) and D (24d) sites of the prototypical C<sub>3</sub>A<sub>2</sub>D<sub>3</sub>O<sub>12</sub> garnet crystal. Examples:</p>
-<p>
+<img id="header-img" src="{{ url_for('static', filename='images/garnetnn.png') }}"/>
+<h1>Garnet Neural Network</h1>
+
+<p>This application uses a deep neural network to predict the stability of garnet crystals.</p>
+<p><b>Instructions</b></p>
+<p>Enter species in the C (24c), A (16a) and D (24d) sites of the prototypical C<sub>3</sub>A<sub>2</sub>D<sub>3</sub>O<sub>12</sub> garnet crystal.</p>
     <ul>
         <li>"Ca2+" means only one type of species (Ca<sup>2+</sup>) is present in the site.</li>
         <li>"Ca2+:2 Mg2+:1" means Ca<sup>2+</sup> and Mg<sup>2+</sup> are present in the site in the ratio of 2:1.</li>
     </ul>
-    Only no mixing or 2:1 mixing is allowed in the C and D sites, and only no mixing and 1:1 mixing is allowed in the A sites.
+<p>
+    Only 2:1 mixing is allowed in the C and D sites, and 1:1 mixing is allowed in the A sites.
 </p>
 
 <form action="/query" method="get" name="query">
 <p class="query">
 <label>C: </label><input type="text" name="c_string" placeholder="E.g., Ca2+" value="{{c_string}}" size="20">
 <label>A: </label><input type="text" name="a_string" placeholder="E.g., Al3+" value="{{a_string}}" size="20">
-<label>D: </label><input type="text" name="d_string" placeholder="E.g., Si4+" value="{{d_string}}" size="20">
-</p>
-<p>
+    <label>D: </label><input type="text" name="d_string" placeholder="E.g., Si4+" value="{{d_string}}" size="20"></p>
+<p class="query">
 <input type="submit" name="submit" value="Compute">
 </p>
 </form>

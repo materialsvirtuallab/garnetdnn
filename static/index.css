@@ -26,15 +26,24 @@ select{
     width: 300px;
 }
 
-p{
-	text-align: center;
-}
-
-#query {
+.query {
 	font-size: 1.3em;
+	text-align: center;
 }
 
 #helptext{
 	margin: auto;
 	font-size: 0.8em;
+}
+
+ul {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#header-img {
+    display: block;
+    margin: auto;
+    width: 50%
 }
