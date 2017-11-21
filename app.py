@@ -29,7 +29,7 @@ ELS_PATH = os.path.join(MODULE_DIR, "elements.json")
 ENTRIES_PATH = os.path.join(MODULE_DIR, "garnet_entries_unique.json")
 BINARY_OXIDES_PATH = os.path.join(MODULE_DIR, "binary_oxide_entries.json")
 
-GARNET_ELEMENTS= loadfn(ELS_PATH)
+GARNET_ELEMENTS = loadfn(ELS_PATH)
 GARNET_ENTRIES_UNIQUE = loadfn(ENTRIES_PATH)
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
 
@@ -178,7 +178,8 @@ def get_descriptor_ext(species):
     if not mix_site:
         # unmixed type
         mix_site = 'c'
-        input_spe = [el for site in ['c','c','a','d'] for el in species[site]]
+        input_spe = [el for site in ['c', 'c', 'a', 'd']
+                     for el in species[site]]
     else:
         # mixed type
         mix_site = mix_site[0]
@@ -384,13 +385,16 @@ def parse_composition(s, ctype):
     else:
         c = Composition({t.split(":")[0]: float(t.split(":")[1])
                          for t in toks})
+        c = Composition({k2: v2 / sum(c.values()) for k2, v2 in c.items()})
         if len(c) != 2:
             raise ValueError("Bad composition on %s." % ctype)
         frac = [c.get_atomic_fraction(k) for k in c.keys()]
-        if ctype == "A" and abs(frac[0] - 0.5) > 0.01:
-            raise ValueError("Bad composition on %s. Only 1:1 mixing allowed!" % ctype)
-        elif not (abs(frac[0] - 1.0/3) < 0.01 or abs(frac[1] - 1.0/3) < 0.01):
-            raise ValueError("Bad composition on %s. Only 2:1 mixing allowed!" % ctype)
+        if ctype == "A":
+            if abs(frac[0] - 0.5) > 0.01:
+                raise ValueError("Bad composition on %s. Only 1:1 mixing allowed!" % ctype)
+        elif ctype in ["C", "D"]:
+            if not (abs(frac[0] - 1.0/3) < 0.01 or abs(frac[1] - 1.0/3) < 0.01):
+                raise ValueError("Bad composition on %s. Only 2:1 mixing allowed!" % ctype)
     try:
         for k in c.keys():
             k.oxi_state
@@ -428,6 +432,7 @@ def query():
         else:
             mix_site = None
 
+        print(mix_site)
         species = {"a": a_composition, "d": d_composition, "c": c_composition}
 
         if abs(charge) < 0.1:
