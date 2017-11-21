@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import sys
+import re
 
 from keras.models import model_from_json
 from sklearn.preprocessing import StandardScaler
@@ -54,6 +55,10 @@ GARNET_ELS = {
 SITE_OCCU = {'c': 3, 'a': 2, 'd': 3}
 
 m = MPRester("xNebFpxTfLhTnnIH")
+
+
+def html_formula(f):
+    return re.sub(r"([\d\.]+)", r"<sub>\1</sub>", f)
 
 
 def binary_encode(config, mix_site):
@@ -459,9 +464,15 @@ def query():
             message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e]
             message.append("<i>E<sub>hull</sub></i> = %.0f meV/atom" %
                            (ehull * 100))
+            print(decomp)
             if ehull > 0:
-                reaction = ["%.3f %s" % (v, k.composition.reduced_formula) for k, v in decomp.items()]
-                message.append(" + ".join(reaction))
+                reaction = []
+                for k, v in decomp.items():
+                    comp = k.composition
+                    rcomp, f = comp.get_reduced_composition_and_factor()
+                    reaction.append('%.3f <a href="https://www.materialsproject.org/materials/%s">%s</a>'
+                                    % (v * f / comp.num_atoms * 20, k.entry_id, html_formula(comp.reduced_formula)))
+                message.append("Decomposition: " + " + ".join(reaction))
 
             message = "<br>".join(message)
         else:

@@ -31,15 +31,12 @@ select{
 	text-align: center;
 }
 
-#helptext{
-	margin: auto;
+.help-p{
 	font-size: 0.8em;
 }
 
 ul {
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
+    font-size: 0.8em;
 }
 
 #header-img {

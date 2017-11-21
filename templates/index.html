@@ -43,14 +43,14 @@ $(function() {
 <img id="header-img" src="{{ url_for('static', filename='images/garnetnn.png') }}"/>
 <h1>Garnet Neural Network</h1>
 
-<p>This application uses a deep neural network to predict the stability of garnet crystals.</p>
-<p><b>Instructions</b></p>
-<p>Enter species in the C (24c), A (16a) and D (24d) sites of the prototypical C<sub>3</sub>A<sub>2</sub>D<sub>3</sub>O<sub>12</sub> garnet crystal.</p>
+<p class="help-p">This application uses a deep neural network to predict the stability of garnet crystals.</p>
+<p class="help-p"><b>Instructions</b></p>
+<p class="help-p">Enter species in the C (24c), A (16a) and D (24d) sites of the prototypical C<sub>3</sub>A<sub>2</sub>D<sub>3</sub>O<sub>12</sub> garnet crystal.</p>
     <ul>
         <li>"Ca2+" means only one type of species (Ca<sup>2+</sup>) is present in the site.</li>
         <li>"Ca2+:2 Mg2+:1" means Ca<sup>2+</sup> and Mg<sup>2+</sup> are present in the site in the ratio of 2:1.</li>
     </ul>
-<p>
+<p class="help-p">
     Only 2:1 mixing is allowed in the C and D sites, and 1:1 mixing is allowed in the A sites.
 </p>
 
@@ -68,7 +68,7 @@ $(function() {
 {% if message %}
 <h2>Results for {{ formula | safe }}</h2>
 <p id="results">{{ message | safe }}</p>
-<p>
+<p class="help-p">
     Definitions:
     <ul>
         <li><i>E<sub>f</sub></i>: Formation energy from binary oxides of same oxidation state</li>
