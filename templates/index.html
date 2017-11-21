@@ -66,8 +66,15 @@ $(function() {
 
 
 {% if message %}
-<h2>Results</h2>
+<h2>Results for {{ formula | safe }}</h2>
 <p id="results">{{ message | safe }}</p>
+<p>
+    Definitions:
+    <ul>
+        <li><i>E<sub>f</sub></i>: Formation energy from binary oxides of same oxidation state</li>
+        <li><i>E<sub>hull</sub></i>: Energy above convex hull</li>
+    </ul>
+</p>
 {% endif %}
 
 

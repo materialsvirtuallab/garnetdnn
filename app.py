@@ -8,14 +8,14 @@ import serialize_sk as sk
 
 from monty.serialization import loadfn
 
-from pymatgen import MPRester, Specie, Composition
+from pymatgen import MPRester, Composition
 from pymatgen.core.periodic_table import get_el_sp
 from pymatgen.entries.computed_entries import ComputedEntry
 from pymatgen.entries.compatibility import MaterialsProjectCompatibility
 from pymatgen.analysis.phase_diagram import PhaseDiagram
 from pymatgen.io.vasp.sets import _load_yaml_config
 
-from flask import render_template, make_response, request, Response, Flask
+from flask import render_template, make_response, request, Flask
 
 
 app = Flask(__name__)
@@ -32,6 +32,7 @@ BINARY_OXIDES_PATH = os.path.join(MODULE_DIR, "binary_oxide_entries.json")
 GARNET_ELEMENTS = loadfn(ELS_PATH)
 GARNET_ENTRIES_UNIQUE = loadfn(ENTRIES_PATH)
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
+
 
 GARNET_ELS = {
     'c': {get_el_sp(i).element: get_el_sp(i).oxi_state for i in
@@ -329,7 +330,7 @@ def get_ehull(tot_e, species, unmix_entries=None):
 
     phase_diagram = PhaseDiagram(all_entries+[entry]+unmix_entries)
 
-    return phase_diagram.get_e_above_hull(entry)
+    return phase_diagram.get_decomp_and_e_above_hull(entry)
 
 
 def model_load_single(model_type):
@@ -432,7 +433,6 @@ def query():
         else:
             mix_site = None
 
-        print(mix_site)
         species = {"a": a_composition, "d": d_composition, "c": c_composition}
 
         if abs(charge) < 0.1:
@@ -444,18 +444,35 @@ def query():
             if mix_site:
                 decompose_entries = get_decomposed_entries(species, model,
                                                            scaler)
-                ehull_pred = get_ehull(tot_e=tot_e, species=species,
-                                       unmix_entries=decompose_entries)
+                decomp, ehull = get_ehull(tot_e=tot_e, species=species,
+                                          unmix_entries=decompose_entries)
             else:
-                ehull_pred = get_ehull(tot_e=tot_e, species=species)
-            message = "<i>E<sub>f</sub></i> = %.3f eV/fu<br><i>E<sub>hull</sub></i> = %.0f meV/atom" % (form_e, ehull_pred * 100)
+                decomp, ehull = get_ehull(tot_e=tot_e, species=species)
+            formula = ["%s<sub>%d</sub>" % (sp.symbol, amt * 3)
+                       for sp, amt in species["c"].items()]
+            formula.extend(["%s<sub>%d</sub>" % (sp.symbol, amt * 2)
+                            for sp, amt in species["a"].items()])
+            formula.extend(["%s<sub>%d</sub>" % (sp.symbol, amt * 3)
+                            for sp, amt in species["d"].items()])
+            formula.append("O<sub>12</sub>")
+            formula = "".join(formula)
+            message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e]
+            message.append("<i>E<sub>hull</sub></i> = %.0f meV/atom" %
+                           (ehull * 100))
+            if ehull > 0:
+                reaction = ["%.3f %s" % (v, k.composition.reduced_formula) for k, v in decomp.items()]
+                message.append(" + ".join(reaction))
+
+            message = "<br>".join(message)
         else:
             message = "Not charge neutral! Total charge = %.0f" % charge
     except Exception as ex:
         message = str(ex)
 
     return make_response(render_template(
-        'index.html', c_string=c_string, a_string=a_string, d_string=d_string,
+        'index.html',
+        c_string=c_string, a_string=a_string, d_string=d_string,
+        formula=formula,
         message=message)
     )
 
@@ -464,7 +481,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
         description="""Basic web app for garnet deep neural network.""",
-        epilog="Author: Shyue Ping Ong")
+        epilog="Author: Weike Ye, Chi Chen, Zhenbin Wang, Iek-Heng Chu, Shyue Ping Ong")
 
     parser.add_argument(
         "-d", "--debug", dest="debug", action="store_true",
