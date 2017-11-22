@@ -363,7 +363,6 @@ def model_load_single(model_type):
     model = model_from_json(model_json["parameters"])
     model.set_weights(model_json["weights"])
 
-
     def deserialize_class(cls_repr):
         cls_repr = sk.decode(cls_repr)
         cls_ = getattr(sys.modules[cls_repr['mod']], cls_repr['name'])
@@ -462,7 +461,6 @@ def query():
             message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e]
             message.append("<i>E<sub>hull</sub></i> = %.0f meV/atom" %
                            (ehull * 100))
-            print(decomp)
             if ehull > 0:
                 reaction = []
                 for k, v in decomp.items():
