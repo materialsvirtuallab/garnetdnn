@@ -26,11 +26,9 @@ MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
 CONFIG = _load_yaml_config("MPRelaxSet")
 LDAUU = CONFIG["INCAR"]['LDAUU']['O']
 
-ELS_PATH = os.path.join(MODULE_DIR, "elements.json")
 ENTRIES_PATH = os.path.join(MODULE_DIR, "garnet_entries_unique.json")
 BINARY_OXIDES_PATH = os.path.join(MODULE_DIR, "binary_oxide_entries.json")
 
-GARNET_ELEMENTS = loadfn(ELS_PATH)
 GARNET_ENTRIES_UNIQUE = loadfn(ENTRIES_PATH)
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
 
@@ -53,12 +51,18 @@ GARNET_ELS = {
            'Ti4+', 'Ga3+', 'Al3+', 'Li+']}
 }
 SITE_OCCU = {'c': 3, 'a': 2, 'd': 3}
+ENCODING_LEN = {
+    'c':  5,
+    'a':  3,
+    'd':  5
+}
+
 
 m = MPRester("xNebFpxTfLhTnnIH")
 
 
 def html_formula(f):
-    return re.sub(r"([\d\.]+)", r"<sub>\1</sub>", f)
+    return re.sub(r"([\d.]+)", r"<sub>\1</sub>", f)
 
 
 def binary_encode(config, mix_site):
@@ -74,11 +78,7 @@ def binary_encode(config, mix_site):
     number
     eg., config = 19, return [1, 0, 0, 1, 1]
     """
-    ENCODING_LEN = {
-        'c':  5,
-        'a':  3,
-        'd':  5
-    }
+
     max_len = ENCODING_LEN[mix_site]
     get_bin = lambda x: format(x, 'b')
     vb = get_bin(config)
@@ -283,10 +283,8 @@ def prepare_entry(tot_e, species):
     elements = [el.name for el in composition]
     potcars = set()
 
-    # all_entries = m.get_entries_in_chemsys(elements=elements)
-
-    all_entries = [e for e in GARNET_ENTRIES_UNIQUE \
-                    if set(e.composition).issubset(set(composition))]
+    all_entries = [e for e in GARNET_ENTRIES_UNIQUE
+                   if set(e.composition).issubset(set(composition))]
 
     for e in all_entries:
         if len(e.composition) == 1 \
