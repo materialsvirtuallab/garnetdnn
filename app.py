@@ -21,13 +21,13 @@ from flask import render_template, make_response, request, Flask
 
 app = Flask(__name__)
 
-MODULE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
 
 CONFIG = _load_yaml_config("MPRelaxSet")
 LDAUU = CONFIG["INCAR"]['LDAUU']['O']
 
-ENTRIES_PATH = os.path.join(MODULE_DIR, "garnet_entries_unique.json")
-BINARY_OXIDES_PATH = os.path.join(MODULE_DIR, "binary_oxide_entries.json")
+ENTRIES_PATH = os.path.join(DATA_DIR, "garnet_entries_unique.json")
+BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
 
 GARNET_ENTRIES_UNIQUE = loadfn(ENTRIES_PATH)
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
@@ -253,7 +253,7 @@ def get_tote(form_e, species):
 
         if not stable_bio_entry:
             stable_bio_df = pd.DataFrame.from_csv(os.path.join(
-                MODULE_DIR, 'stable_binary_oxides_garnet.csv'))
+                DATA_DIR, 'stable_binary_oxides_garnet.csv'))
             stable_bio_id = stable_bio_df.loc[
                 lambda df: df.specie == el.symbol]['mpid'].tolist()[0]
             stable_bio_entry = m.get_entry_by_material_id(
@@ -325,8 +325,8 @@ def get_ehull(tot_e, species, unmix_entries=None):
     formula = spe2form(species)
     composition = Composition(formula)
     unmix_entries = [] if unmix_entries is None else unmix_entries
-    all_entries = [e for e in GARNET_ENTRIES_UNIQUE \
-                    if set(e.composition).issubset(set(composition))]
+    all_entries = [e for e in GARNET_ENTRIES_UNIQUE
+                   if set(e.composition).issubset(set(composition))]
     if not all_entries:
         raise ValueError("Incomplete")
     entry = prepare_entry(tot_e, species)
@@ -339,7 +339,7 @@ def get_ehull(tot_e, species, unmix_entries=None):
 def model_load_single(model_type):
     """
     Load model and scaler for Ef prediction.
-    Models are saved in the GarnetModels.json
+    Models are saved in the garnet_models.json
     for each model type:
     {
     "model": {parameters:model(keras.model).to_json(),
@@ -357,7 +357,7 @@ def model_load_single(model_type):
         scaler(keras.StandardScaler)
 
     """
-    MODELS = loadfn("GarnetModels.json")
+    MODELS = loadfn(os.path.join(DATA_DIR, "garnet_models.json"))
 
     model_json = MODELS[model_type]['model']
     model = model_from_json(model_json["parameters"])
@@ -394,10 +394,12 @@ def parse_composition(s, ctype):
         frac = [c.get_atomic_fraction(k) for k in c.keys()]
         if ctype == "A":
             if abs(frac[0] - 0.5) > 0.01:
-                raise ValueError("Bad composition on %s. Only 1:1 mixing allowed!" % ctype)
+                raise ValueError("Bad composition on %s. "
+                                 "Only 1:1 mixing allowed!" % ctype)
         elif ctype in ["C", "D"]:
             if not (abs(frac[0] - 1.0/3) < 0.01 or abs(frac[1] - 1.0/3) < 0.01):
-                raise ValueError("Bad composition on %s. Only 2:1 mixing allowed!" % ctype)
+                raise ValueError("Bad composition on %s. "
+                                 "Only 2:1 mixing allowed!" % ctype)
     try:
         for k in c.keys():
             k.oxi_state
@@ -458,16 +460,17 @@ def query():
                             for sp, amt in species["d"].items()])
             formula.append("O<sub>12</sub>")
             formula = "".join(formula)
-            message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e]
-            message.append("<i>E<sub>hull</sub></i> = %.0f meV/atom" %
-                           (ehull * 100))
+            message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e,
+                       "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
+                       (ehull * 100)]
             if ehull > 0:
                 reaction = []
                 for k, v in decomp.items():
                     comp = k.composition
                     rcomp, f = comp.get_reduced_composition_and_factor()
                     reaction.append('%.3f <a href="https://www.materialsproject.org/materials/%s">%s</a>'
-                                    % (v * f / comp.num_atoms * 20, k.entry_id, html_formula(comp.reduced_formula)))
+                                    % (v * f / comp.num_atoms * 20, k.entry_id,
+                                       html_formula(comp.reduced_formula)))
                 message.append("Decomposition: " + " + ".join(reaction))
 
             message = "<br>".join(message)
@@ -488,7 +491,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(
         description="""Basic web app for garnet deep neural network.""",
-        epilog="Author: Weike Ye, Chi Chen, Zhenbin Wang, Iek-Heng Chu, Shyue Ping Ong")
+        epilog="Authors: Weike Ye, Chi Chen, Zhenbin Wang, Iek-Heng Chu, Shyue Ping Ong")
 
     parser.add_argument(
         "-d", "--debug", dest="debug", action="store_true",

@@ -217,7 +217,7 @@ def spe2form(species):
 def model_load(model_type):
     """
     Load model and scaler for Ef prediction.
-    Models are saved in the GarnetModels.json
+    Models are saved in the garnet_models.json
     for each model type:
     {
     "model": {parameters:model(keras.model).to_json(),
@@ -235,7 +235,7 @@ def model_load(model_type):
         scaler(keras.StandardScaler)
 
     """
-    MODELS = loadfn("GarnetModels.json")
+    MODELS = loadfn("garnet_models.json")
 
 
     model_json = MODELS[model_type]['model']
