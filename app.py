@@ -2,10 +2,12 @@ import os
 import pandas as pd
 import sys
 import re
+import pickle
 
-from keras.models import model_from_json
-from sklearn.preprocessing import StandardScaler
-import serialize_sk as sk
+# from keras.models import model_from_json
+# from sklearn.preprocessing import StandardScaler
+# import serialize_sk as sk
+from keras.models import load_model
 
 from monty.serialization import loadfn
 
@@ -22,7 +24,7 @@ from flask import render_template, make_response, request, Flask
 app = Flask(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-
+MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 CONFIG = _load_yaml_config("MPRelaxSet")
 LDAUU = CONFIG["INCAR"]['LDAUU']['O']
 
@@ -50,6 +52,7 @@ GARNET_ELS = {
           ['As5+', 'P5+', 'Sn4+', 'Ge4+', 'Si4+',
            'Ti4+', 'Ga3+', 'Al3+', 'Li+']}
 }
+
 SITE_OCCU = {'c': 3, 'a': 2, 'd': 3}
 ENCODING_LEN = {
     'c':  5,
@@ -87,12 +90,7 @@ def binary_encode(config, mix_site):
     return letter
 
 
-def binary_decode(letter):
-    letter = [str(i) for i in letter]
-    return int(''.join(letter), 2)
-
-
-def get_decomposed_entries(species, model, scaler):
+def get_decomposed_entries(species):
     """
     Get decomposed entries for mix types
     Args:
@@ -117,11 +115,12 @@ def get_decomposed_entries(species, model, scaler):
                     yield spe_copy
 
     decompose_entries = []
-    for unmix in decomposed(species):
-        descriptors = get_descriptor_ext(unmix)
+    model, scaler = model_load_single("ext_c")
+    for unmix_species in decomposed(species):
+        descriptors = get_descriptor_ext(unmix_species)
         form_e = get_form_e_ext(descriptors, model, scaler)
-        tot_e = get_tote(form_e, unmix)
-        entry = prepare_entry(tot_e, unmix)
+        tot_e = get_tote(form_e, unmix_species)
+        entry = prepare_entry(tot_e, unmix_species)
         compat = MaterialsProjectCompatibility()
         entry = compat.process_entry(entry)
         decompose_entries.append(entry)
@@ -178,7 +177,7 @@ def get_descriptor_ext(species):
         'd': 18
     }
 
-    # To sort the c site based on occupancy
+
     sites = ['c', 'a', 'd']
     mix_site = [site for site in sites if len(species[site]) == 2]
     if not mix_site:
@@ -191,6 +190,7 @@ def get_descriptor_ext(species):
         mix_site = mix_site[0]
         sites.remove(mix_site)
         spes = species.copy()
+        #C', C'' follow the order of increasing occupancy
         spes['%s_sorted' % mix_site] = sorted(
             spes[mix_site], key=lambda k: (spes[mix_site][k], k))
         input_spe = [el for site in ['%s_sorted' % mix_site] + sites
@@ -227,7 +227,7 @@ def get_tote(form_e, species):
     """
     Get total energy with respect to given Ef
     and species.
-
+    Ef = Etot - sum(Etot,ox)
     Args:
         form_e (float): Ef
             the form_e is in eV/f.u.
@@ -283,6 +283,8 @@ def prepare_entry(tot_e, species):
     elements = [el.name for el in composition]
     potcars = set()
 
+    #TODO: The whole process of getting all_entries is just to find potcar_symbols\
+    #       try make it into a yaml or just load it from MPCONFIG
     all_entries = [e for e in GARNET_ENTRIES_UNIQUE
                    if set(e.composition).issubset(set(composition))]
 
@@ -357,22 +359,9 @@ def model_load_single(model_type):
         scaler(keras.StandardScaler)
 
     """
-    MODELS = loadfn(os.path.join(DATA_DIR, "garnet_models.json"))
-
-    model_json = MODELS[model_type]['model']
-    model = model_from_json(model_json["parameters"])
-    model.set_weights(model_json["weights"])
-
-    def deserialize_class(cls_repr):
-        cls_repr = sk.decode(cls_repr)
-        cls_ = getattr(sys.modules[cls_repr['mod']], cls_repr['name'])
-        cls_init = cls_()
-        for k, v in cls_repr['attr'].items():
-            setattr(cls_init, k, v)
-        return cls_init
-    scaler_json = MODELS[model_type]['scaler']
-    scaler = deserialize_class(scaler_json)
-
+    model = load_model(os.path.join(MODEL_DIR, "model_%s.h5"%model_type))
+    with open(os.path.join(MODEL_DIR, "scaler_%s.pkl"%model_type),"rb") as f:
+        scaler = pickle.load(f)
     return model, scaler
 
 
@@ -446,8 +435,7 @@ def query():
             form_e = get_form_e_ext(inputs, model, scaler)
             tot_e = get_tote(form_e, species)
             if mix_site:
-                decompose_entries = get_decomposed_entries(species, model,
-                                                           scaler)
+                decompose_entries = get_decomposed_entries(species)
                 decomp, ehull = get_ehull(tot_e=tot_e, species=species,
                                           unmix_entries=decompose_entries)
             else:
