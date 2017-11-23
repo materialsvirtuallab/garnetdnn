@@ -29,9 +29,11 @@ CONFIG = _load_yaml_config("MPRelaxSet")
 LDAUU = CONFIG["INCAR"]['LDAUU']['O']
 
 ENTRIES_PATH = os.path.join(DATA_DIR, "garnet_entries_unique.json")
+GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet_calc_entries.json")
 BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
 
 GARNET_ENTRIES_UNIQUE = loadfn(ENTRIES_PATH)
+GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
 
 
@@ -147,7 +149,7 @@ def spe2form(species):
     """
     sites = ['c', 'a', 'd']
 
-    spe_list = [spe.name + str(int(SITE_OCCU[site] * amt))
+    spe_list = [spe.name + str(amt)
                 for site in sites for
                 spe, amt in species[site].items()]
     formula = "".join(spe_list)
@@ -281,19 +283,19 @@ def prepare_entry(tot_e, species):
     formula = spe2form(species)
     composition = Composition(formula)
     elements = [el.name for el in composition]
-    potcars = set()
+    # potcars = set()
 
     #TODO: The whole process of getting all_entries is just to find potcar_symbols\
     #       try make it into a yaml or just load it from MPCONFIG
-    all_entries = [e for e in GARNET_ENTRIES_UNIQUE
-                   if set(e.composition).issubset(set(composition))]
+    # all_entries = [e for e in GARNET_ENTRIES_UNIQUE
+                   # if set(e.composition).issubset(set(composition))]
 
-    for e in all_entries:
-        if len(e.composition) == 1 \
-                and e.composition.reduced_formula in elements:
-            potcars.update(e.parameters["potcar_symbols"])
+    # for e in all_entries:
+    #     if len(e.composition) == 1 \
+    #             and e.composition.reduced_formula in elements:
+    #         potcars.update(e.parameters["potcar_symbols"])
 
-    potcars.update({"pbe O"})
+    potcars = ["pbe %s"%CONFIG['POTCAR'][el] for el in elements]
 
     parameters = {"potcar_symbols": list(potcars),
                   "oxide_type": 'oxide'}
@@ -327,7 +329,7 @@ def get_ehull(tot_e, species, unmix_entries=None):
     formula = spe2form(species)
     composition = Composition(formula)
     unmix_entries = [] if unmix_entries is None else unmix_entries
-    all_entries = [e for e in GARNET_ENTRIES_UNIQUE
+    all_entries = [e for e in GARNET_ENTRIES_UNIQUE + GARNET_CALC_ENTRIES
                    if set(e.composition).issubset(set(composition))]
     if not all_entries:
         raise ValueError("Incomplete")
