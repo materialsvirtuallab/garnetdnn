@@ -20,7 +20,6 @@ from pymatgen.io.vasp.sets import _load_yaml_config
 
 from flask import render_template, make_response, request, Flask
 
-
 app = Flask(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
@@ -35,7 +34,6 @@ BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
 GARNET_ENTRIES_UNIQUE = loadfn(ENTRIES_PATH)
 GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
-
 
 GARNET_ELS = {
     'c': {get_el_sp(i).element: get_el_sp(i).oxi_state for i in
@@ -56,11 +54,6 @@ GARNET_ELS = {
 }
 
 SITE_OCCU = {'c': 3, 'a': 2, 'd': 3}
-ENCODING_LEN = {
-    'c':  5,
-    'a':  3,
-    'd':  5
-}
 
 
 m = MPRester("xNebFpxTfLhTnnIH")
@@ -83,12 +76,16 @@ def binary_encode(config, mix_site):
     number
     eg., config = 19, return [1, 0, 0, 1, 1]
     """
-
+    ENCODING_LEN = {
+        'c': 5,
+        'a': 3,
+        'd': 5
+    }
     max_len = ENCODING_LEN[mix_site]
     get_bin = lambda x: format(x, 'b')
     vb = get_bin(config)
     letter = [int(char) for char in vb]
-    letter = [0] * (max_len-len(letter)) + letter
+    letter = [0] * (max_len - len(letter)) + letter
     return letter
 
 
@@ -107,6 +104,7 @@ def get_decomposed_entries(species):
             garnets decomposed from input mix
             garnet
     """
+
     def decomposed(specie_complex):
         """Decompose those have sub-dict to individual dict objects."""
         for site, specie in specie_complex.items():
@@ -119,6 +117,11 @@ def get_decomposed_entries(species):
     decompose_entries = []
     model, scaler = model_load_single("ext_c")
     for unmix_species in decomposed(species):
+        charge = sum([spe.oxi_state * amt * SITE_OCCU[site] \
+                      for site in ['a', 'c', 'd'] \
+                      for spe, amt in unmix_species[site].items()])
+        if not abs(charge - 2 * 12) < 0.1:
+            continue
         descriptors = get_descriptor_ext(unmix_species)
         form_e = get_form_e_ext(descriptors, model, scaler)
         tot_e = get_tote(form_e, unmix_species)
@@ -149,7 +152,7 @@ def spe2form(species):
     """
     sites = ['c', 'a', 'd']
 
-    spe_list = [spe.name + str(amt)
+    spe_list = [spe.name + str(round(SITE_OCCU[site] * amt))
                 for site in sites for
                 spe, amt in species[site].items()]
     formula = "".join(spe_list)
@@ -179,7 +182,6 @@ def get_descriptor_ext(species):
         'd': 18
     }
 
-
     sites = ['c', 'a', 'd']
     mix_site = [site for site in sites if len(species[site]) == 2]
     if not mix_site:
@@ -192,9 +194,11 @@ def get_descriptor_ext(species):
         mix_site = mix_site[0]
         sites.remove(mix_site)
         spes = species.copy()
-        #C', C'' follow the order of increasing occupancy
+        # sort the mix site on the order of increasing occupancy
         spes['%s_sorted' % mix_site] = sorted(
-            spes[mix_site], key=lambda k: (spes[mix_site][k], k))
+            spes[mix_site],
+            key=lambda k: (spes[mix_site][k], k),
+            reverse=True if mix_site=='a' else False)
         input_spe = [el for site in ['%s_sorted' % mix_site] + sites
                      for el in spes[site]]
 
@@ -283,19 +287,8 @@ def prepare_entry(tot_e, species):
     formula = spe2form(species)
     composition = Composition(formula)
     elements = [el.name for el in composition]
-    # potcars = set()
 
-    #TODO: The whole process of getting all_entries is just to find potcar_symbols\
-    #       try make it into a yaml or just load it from MPCONFIG
-    # all_entries = [e for e in GARNET_ENTRIES_UNIQUE
-                   # if set(e.composition).issubset(set(composition))]
-
-    # for e in all_entries:
-    #     if len(e.composition) == 1 \
-    #             and e.composition.reduced_formula in elements:
-    #         potcars.update(e.parameters["potcar_symbols"])
-
-    potcars = ["pbe %s"%CONFIG['POTCAR'][el] for el in elements]
+    potcars = ["pbe %s" % CONFIG['POTCAR'][el] for el in elements]
 
     parameters = {"potcar_symbols": list(potcars),
                   "oxide_type": 'oxide'}
@@ -335,7 +328,7 @@ def get_ehull(tot_e, species, unmix_entries=None):
         raise ValueError("Incomplete")
     entry = prepare_entry(tot_e, species)
 
-    phase_diagram = PhaseDiagram(all_entries+[entry]+unmix_entries)
+    phase_diagram = PhaseDiagram(all_entries + [entry] + unmix_entries)
 
     return phase_diagram.get_decomp_and_e_above_hull(entry)
 
@@ -361,8 +354,8 @@ def model_load_single(model_type):
         scaler(keras.StandardScaler)
 
     """
-    model = load_model(os.path.join(MODEL_DIR, "model_%s.h5"%model_type))
-    with open(os.path.join(MODEL_DIR, "scaler_%s.pkl"%model_type),"rb") as f:
+    model = load_model(os.path.join(MODEL_DIR, "model_%s.h5" % model_type))
+    with open(os.path.join(MODEL_DIR, "scaler_%s.pkl" % model_type), "rb") as f:
         scaler = pickle.load(f)
     return model, scaler
 
@@ -388,7 +381,7 @@ def parse_composition(s, ctype):
                 raise ValueError("Bad composition on %s. "
                                  "Only 1:1 mixing allowed!" % ctype)
         elif ctype in ["C", "D"]:
-            if not (abs(frac[0] - 1.0/3) < 0.01 or abs(frac[1] - 1.0/3) < 0.01):
+            if not (abs(frac[0] - 1.0 / 3) < 0.01 or abs(frac[1] - 1.0 / 3) < 0.01):
                 raise ValueError("Bad composition on %s. "
                                  "Only 2:1 mixing allowed!" % ctype)
     try:
@@ -452,7 +445,7 @@ def query():
             formula = "".join(formula)
             message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e,
                        "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
-                       (ehull * 100)]
+                       (ehull * 1000)]
             if ehull > 0:
                 reaction = []
                 for k, v in decomp.items():
@@ -473,12 +466,14 @@ def query():
         'index.html',
         c_string=c_string, a_string=a_string, d_string=d_string,
         formula=formula,
-        message=message)
+        message=message
+    )
     )
 
 
 if __name__ == "__main__":
     import argparse
+
     parser = argparse.ArgumentParser(
         description="""Basic web app for garnet deep neural network.""",
         epilog="Authors: Weike Ye, Chi Chen, Zhenbin Wang, Iek-Heng Chu, Shyue Ping Ong")
