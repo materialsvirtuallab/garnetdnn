@@ -36,21 +36,21 @@ GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
 
 GARNET_ELS = {
-    'c': {get_el_sp(i).element: get_el_sp(i).oxi_state for i in
+    'C': [get_el_sp(i) for i in
           ['Bi3+', 'Hf4+', 'Zr4+', 'La3+', 'Pr3+', 'Nd3+', 'Sm3+', 'Eu3+',
            'Gd3+', 'Tb3+', 'Dy3+', 'Ho3+', 'Er3+', 'Tm3+', 'Yb3+', 'Lu3+',
-           'Y3+', 'Cd2+', 'Zn2+', 'Ba2+', 'Sr2+', 'Ca2+', 'Mg2+', 'Na+']},
+           'Y3+', 'Cd2+', 'Zn2+', 'Ba2+', 'Sr2+', 'Ca2+', 'Mg2+', 'Na+']],
 
-    'a': {get_el_sp(i).element: get_el_sp(i).oxi_state for i in
+    'A': [get_el_sp(i) for i in
           ['Rh3+', 'Ru4+', 'Cr3+', 'Sb5+', 'Ta5+',
            'Nb5+', 'Sn4+', 'Ge4+', 'Hf4+', 'Zr4+', 'Ti4+',
            'In3+', 'Ga3+', 'Al3+', 'Lu3+', 'Yb3+', 'Tm3+',
            'Er3+', 'Ho3+', 'Dy3+', 'Y3+', 'Sc3+', 'Zn2+',
-           'Mg2+', 'Li+']},
+           'Mg2+', 'Li+']],
 
-    'd': {get_el_sp(i).element: get_el_sp(i).oxi_state for i in
+    'D': [get_el_sp(i) for i in
           ['As5+', 'P5+', 'Sn4+', 'Ge4+', 'Si4+',
-           'Ti4+', 'Ga3+', 'Al3+', 'Li+']}
+           'Ti4+', 'Ga3+', 'Al3+', 'Li+']]
 }
 
 SITE_OCCU = {'c': 3, 'a': 2, 'd': 3}
@@ -387,17 +387,23 @@ def parse_composition(s, ctype):
     try:
         for k in c.keys():
             k.oxi_state
+            if k not in GARNET_ELS[ctype]:
+                raise ValueError("%s is not a valid species for %s site."
+                                 % (k, ctype))
     except AttributeError:
         raise ValueError("Oxidation states must be specified for all species!")
+
     return c
 
 
 @app.route('/query', methods=['GET'])
 def query():
+
     try:
         c_string = request.args.get("c_string")
         a_string = request.args.get("a_string")
         d_string = request.args.get("d_string")
+        formula = ""
 
         c_composition = parse_composition(c_string, "C")
         a_composition = parse_composition(a_string, "A")
