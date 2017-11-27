@@ -54,6 +54,37 @@ SITE_OCCU = {'c': 3, 'a': 2, 'd': 3}
 m = MPRester("xNebFpxTfLhTnnIH")
 
 
+def _load_model_and_scaler(model_type):
+    """
+    Load model and scaler for Ef prediction.
+    Models are saved in the garnet_models.json
+    for each model type:
+    {
+    "model": {parameters:model(keras.model).to_json(),
+              "weights":model(keras.model).get_weights()}
+    "scaler": serialize_class(scaler(StandardScaler))
+    }
+    Serialized in Serialization.ipynb
+
+    Args:
+        model_type (str): type of mdoels
+            ext_c : Extended model trained on unmix+cmix
+            ext_a : Extended model trained on unmix+amix
+            ext_d : Extended model trained on unmix+dmix
+
+    Returns:
+        model (keras.model)
+        scaler(keras.StandardScaler)
+    """
+    model = load_model(os.path.join(MODEL_DIR, "model_%s.h5" % model_type))
+    with open(os.path.join(MODEL_DIR, "scaler_%s.pkl" % model_type), "rb") as f:
+        scaler = pickle.load(f)
+    return model, scaler
+
+
+MODELS = {k: _load_model_and_scaler("ext_" + k) for k in ["c", "a", "d"]}
+
+
 def html_formula(f):
     return re.sub(r"([\d.]+)", r"<sub>\1</sub>", f)
 
@@ -110,10 +141,10 @@ def get_decomposed_entries(species):
                     yield spe_copy
 
     decompose_entries = []
-    model, scaler = _load_model_and_scaler("ext_c")
+    model, scaler = MODELS["c"]
     for unmix_species in decomposed(species):
-        charge = sum([spe.oxi_state * amt * SITE_OCCU[site] \
-                      for site in ['a', 'c', 'd'] \
+        charge = sum([spe.oxi_state * amt * SITE_OCCU[site]
+                      for site in ['a', 'c', 'd']
                       for spe, amt in unmix_species[site].items()])
         if not abs(charge - 2 * 12) < 0.1:
             continue
@@ -328,34 +359,6 @@ def get_ehull(tot_e, species, unmix_entries=None):
     return phase_diagram.get_decomp_and_e_above_hull(entry)
 
 
-def _load_model_and_scaler(model_type):
-    """
-    Load model and scaler for Ef prediction.
-    Models are saved in the garnet_models.json
-    for each model type:
-    {
-    "model": {parameters:model(keras.model).to_json(),
-              "weights":model(keras.model).get_weights()}
-    "scaler": serialize_class(scaler(StandardScaler))
-    }
-    Serialized in Serialization.ipynb
-
-    Args:
-        model_type (str): type of mdoels
-            ext_c : Extended model trained on unmix+cmix
-            ext_a : Extended model trained on unmix+amix
-            ext_d : Extended model trained on unmix+dmix
-
-    Returns:
-        model (keras.model)
-        scaler(keras.StandardScaler)
-    """
-    model = load_model(os.path.join(MODEL_DIR, "model_%s.h5" % model_type))
-    with open(os.path.join(MODEL_DIR, "scaler_%s.pkl" % model_type), "rb") as f:
-        scaler = pickle.load(f)
-    return model, scaler
-
-
 @app.route('/', methods=['GET'])
 def index():
     return make_response(render_template('index.html'))
@@ -426,8 +429,7 @@ def query():
         species = {"a": a_composition, "d": d_composition, "c": c_composition}
 
         if abs(charge) < 0.1:
-            model, scaler = _load_model_and_scaler("ext_%s" % mix_site) \
-                if mix_site else _load_model_and_scaler("ext_c")
+            model, scaler = MODELS[mix_site] if mix_site else MODELS["c"]
             inputs = get_descriptor_ext(species)
             form_e = get_form_e_ext(inputs, model, scaler)
             tot_e = get_tote(form_e, species)
