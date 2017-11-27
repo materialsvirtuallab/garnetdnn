@@ -50,7 +50,6 @@ GARNET_ELS = {
 
 SITE_OCCU = {'c': 3, 'a': 2, 'd': 3}
 
-
 m = MPRester("xNebFpxTfLhTnnIH")
 
 
@@ -193,7 +192,7 @@ def get_descriptor_ext(species):
         spes['%s_sorted' % mix_site] = sorted(
             spes[mix_site],
             key=lambda k: (spes[mix_site][k], k),
-            reverse=True if mix_site=='a' else False)
+            reverse=True if mix_site == 'a' else False)
         input_spe = [el for site in ['%s_sorted' % mix_site] + sites
                      for el in spes[site]]
 
@@ -377,7 +376,8 @@ def parse_composition(s, ctype):
                 raise ValueError("Bad composition on %s. "
                                  "Only 1:1 mixing allowed!" % ctype)
         elif ctype in ["C", "D"]:
-            if not (abs(frac[0] - 1.0 / 3) < 0.01 or abs(frac[1] - 1.0 / 3) < 0.01):
+            if not (abs(frac[0] - 1.0 / 3) < 0.01 or abs(
+                        frac[1] - 1.0 / 3) < 0.01):
                 raise ValueError("Bad composition on %s. "
                                  "Only 2:1 mixing allowed!" % ctype)
     try:
@@ -394,7 +394,6 @@ def parse_composition(s, ctype):
 
 @app.route('/query', methods=['GET'])
 def query():
-
     try:
         c_string = request.args.get("c_string")
         a_string = request.args.get("a_string")
@@ -453,9 +452,10 @@ def query():
                 for k, v in decomp.items():
                     comp = k.composition
                     rcomp, f = comp.get_reduced_composition_and_factor()
-                    reaction.append('%.3f <a href="https://www.materialsproject.org/materials/%s">%s</a>'
-                                    % (v * f / comp.num_atoms * 20, k.entry_id,
-                                       html_formula(comp.reduced_formula)))
+                    reaction.append(
+                        '%.3f <a href="https://www.materialsproject.org/materials/%s">%s</a>'
+                        % (v * f / comp.num_atoms * 20, k.entry_id,
+                           html_formula(comp.reduced_formula)))
                 message.append("Decomposition: " + " + ".join(reaction))
 
             message = "<br>".join(message)
