@@ -83,7 +83,7 @@ class GarnetEhullPredTest(unittest.TestCase):
         self.dmix_dft_ehull = 0.101
 
     def test_amix(self):
-        model, scaler = model_load_single('ext_a')
+        model, scaler = _load_model_and_scaler('ext_a')
         des = get_descriptor_ext(self.amix_species)
         des.sort()
         self.assertEqual(des, self.amix_des)
@@ -103,7 +103,7 @@ class GarnetEhullPredTest(unittest.TestCase):
         self.assertTrue(abs(ehull-self.amix_dft_ehull) < 1e-2 )
 
     def test_cmix(self):
-        model, scaler = model_load_single('ext_c')
+        model, scaler = _load_model_and_scaler('ext_c')
         des = get_descriptor_ext(self.cmix_species)
         des.sort()
         self.assertEqual(des, self.cmix_des)
@@ -122,7 +122,7 @@ class GarnetEhullPredTest(unittest.TestCase):
         self.assertTrue(abs(ehull-self.cmix_dft_ehull) < 1e-2 )
 
     def test_dmix(self):
-        model, scaler = model_load_single('ext_d')
+        model, scaler = _load_model_and_scaler('ext_d')
         des = get_descriptor_ext(self.dmix_species)
         des.sort()
         self.assertEqual(des, self.dmix_des)
