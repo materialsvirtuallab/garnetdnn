@@ -79,11 +79,12 @@ def _load_model_and_scaler(model_type):
         scaler(keras.StandardScaler)
     """
     if model_type not in MODELS:
-        model = load_model(os.path.join(MODEL_DIR, "model_%s.h5" % model_type))
-        with open(os.path.join(MODEL_DIR, "scaler_%s.pkl" % model_type), "rb") as f:
+        model = load_model(os.path.join(MODEL_DIR, "model_ext_%s.h5" % model_type))
+        with open(os.path.join(MODEL_DIR, "scaler_ext_%s.pkl" % model_type), "rb") as f:
             scaler = pickle.load(f)
         MODELS[model_type] = model, scaler
-    return  MODELS[model_type]
+        return model, scaler
+    return MODELS[model_type]
 
 
 def html_formula(f):
@@ -142,7 +143,7 @@ def get_decomposed_entries(species):
                     yield spe_copy
 
     decompose_entries = []
-    model, scaler = MODELS["c"]
+    model, scaler = _load_model_and_scaler("c")
     for unmix_species in decomposed(species):
         charge = sum([spe.oxi_state * amt * SITE_OCCU[site]
                       for site in ['a', 'c', 'd']
@@ -430,7 +431,7 @@ def query():
         species = {"a": a_composition, "d": d_composition, "c": c_composition}
 
         if abs(charge) < 0.1:
-            model, scaler = MODELS[mix_site] if mix_site else MODELS["c"]
+            model, scaler = _load_model_and_scaler(mix_site) if mix_site else _load_model_and_scaler("c")
             inputs = get_descriptor_ext(species)
             form_e = get_form_e_ext(inputs, model, scaler)
             tot_e = get_tote(form_e, species)
