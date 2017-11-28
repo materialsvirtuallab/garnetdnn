@@ -53,6 +53,9 @@ SITE_OCCU = {'c': 3, 'a': 2, 'd': 3}
 m = MPRester("xNebFpxTfLhTnnIH")
 
 
+MODELS = {}
+
+
 def _load_model_and_scaler(model_type):
     """
     Load model and scaler for Ef prediction.
@@ -75,13 +78,12 @@ def _load_model_and_scaler(model_type):
         model (keras.model)
         scaler(keras.StandardScaler)
     """
-    model = load_model(os.path.join(MODEL_DIR, "model_%s.h5" % model_type))
-    with open(os.path.join(MODEL_DIR, "scaler_%s.pkl" % model_type), "rb") as f:
-        scaler = pickle.load(f)
-    return model, scaler
-
-
-MODELS = {k: _load_model_and_scaler("ext_" + k) for k in ["c", "a", "d"]}
+    if model_type not in MODELS:
+        model = load_model(os.path.join(MODEL_DIR, "model_%s.h5" % model_type))
+        with open(os.path.join(MODEL_DIR, "scaler_%s.pkl" % model_type), "rb") as f:
+            scaler = pickle.load(f)
+        MODELS[model_type] = model, scaler
+    return  MODELS[model_type]
 
 
 def html_formula(f):
