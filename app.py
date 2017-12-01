@@ -52,24 +52,15 @@ SITE_OCCU = {'c': 3, 'a': 2, 'd': 3}
 
 m = MPRester("xNebFpxTfLhTnnIH")
 
-
 MODELS = {}
 
 
-def _load_model_and_scaler(model_type):
+def load_model_and_scaler(model_type):
     """
     Load model and scaler for Ef prediction.
-    Models are saved in the garnet_models.json
-    for each model type:
-    {
-    "model": {parameters:model(keras.model).to_json(),
-              "weights":model(keras.model).get_weights()}
-    "scaler": serialize_class(scaler(StandardScaler))
-    }
-    Serialized in Serialization.ipynb
 
     Args:
-        model_type (str): type of mdoels
+        model_type (str): type of models
             ext_c : Extended model trained on unmix+cmix
             ext_a : Extended model trained on unmix+amix
             ext_d : Extended model trained on unmix+dmix
@@ -79,8 +70,10 @@ def _load_model_and_scaler(model_type):
         scaler(keras.StandardScaler)
     """
     if model_type not in MODELS:
-        model = load_model(os.path.join(MODEL_DIR, "model_ext_%s.h5" % model_type))
-        with open(os.path.join(MODEL_DIR, "scaler_ext_%s.pkl" % model_type), "rb") as f:
+        model = load_model(os.path.join(MODEL_DIR,
+                                        "model_ext_%s.h5" % model_type))
+        with open(os.path.join(MODEL_DIR,
+                               "scaler_ext_%s.pkl" % model_type), "rb") as f:
             scaler = pickle.load(f)
         MODELS[model_type] = model, scaler
         return model, scaler
@@ -143,7 +136,7 @@ def get_decomposed_entries(species):
                     yield spe_copy
 
     decompose_entries = []
-    model, scaler = _load_model_and_scaler("c")
+    model, scaler = load_model_and_scaler("c")
     for unmix_species in decomposed(species):
         charge = sum([spe.oxi_state * amt * SITE_OCCU[site]
                       for site in ['a', 'c', 'd']
@@ -180,9 +173,9 @@ def spe2form(species):
     """
     sites = ['c', 'a', 'd']
 
-    spe_list = [spe.name + str(round(SITE_OCCU[site] * amt))
+    spe_list = [spe.name + str(round(SITE_OCCU[site] * species[site][spe]))
                 for site in sites for
-                spe, amt in species[site].items()]
+                spe in sorted(species[site])]
     formula = "".join(spe_list)
     formula = formula.replace("1", "") + 'O12'
     return formula
@@ -235,6 +228,11 @@ def get_descriptor_ext(species):
     descriptors = list(sum(descriptors, ()))
     descriptors_config = [descriptors + binary_encode(config, mix_site)
                           for config in range(0, ORDERINGS[mix_site])]
+    if mix_site == 'a':
+        descriptors_r = descriptors[2:4] + descriptors[:2] + descriptors[4:]
+        descriptors_config_r = [descriptors_r + binary_encode(config, mix_site)
+                                for config in range(0, ORDERINGS[mix_site])]
+        descriptors_config += descriptors_config_r
 
     return descriptors_config
 
@@ -431,7 +429,7 @@ def query():
         species = {"a": a_composition, "d": d_composition, "c": c_composition}
 
         if abs(charge) < 0.1:
-            model, scaler = _load_model_and_scaler(mix_site) if mix_site else _load_model_and_scaler("c")
+            model, scaler = load_model_and_scaler(mix_site) if mix_site else load_model_and_scaler("c")
             inputs = get_descriptor_ext(species)
             form_e = get_form_e_ext(inputs, model, scaler)
             tot_e = get_tote(form_e, species)
@@ -441,14 +439,15 @@ def query():
                                           unmix_entries=decompose_entries)
             else:
                 decomp, ehull = get_ehull(tot_e=tot_e, species=species)
-            formula = ["%s<sub>%d</sub>" % (sp.symbol, amt * 3)
-                       for sp, amt in species["c"].items()]
-            formula.extend(["%s<sub>%d</sub>" % (sp.symbol, amt * 2)
-                            for sp, amt in species["a"].items()])
-            formula.extend(["%s<sub>%d</sub>" % (sp.symbol, amt * 3)
-                            for sp, amt in species["d"].items()])
-            formula.append("O<sub>12</sub>")
-            formula = "".join(formula)
+            # formula = ["%s<sub>%d</sub>" % (sp.symbol, amt * 3)
+            #            for sp, amt in species["c"].items()]
+            # formula.extend(["%s<sub>%d</sub>" % (sp.symbol, amt * 2)
+            #                 for sp, amt in species["a"].items()])
+            # formula.extend(["%s<sub>%d</sub>" % (sp.symbol, amt * 3)
+            #                 for sp, amt in species["d"].items()])
+            # formula.append("O<sub>12</sub>")
+            # formula = "".join(formula)
+            formula = spe2form(species)
             message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e,
                        "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
                        (ehull * 1000)]
