@@ -4,6 +4,6 @@ monty==1.0.2
 pymatgen==2017.11.30
 scikit-learn==0.19.1
 tensorflow==1.4.0
-keras==2.1.1
+keras==2.1.2
 h5py==2.7.1
 pandas==0.21.0
