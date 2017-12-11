@@ -439,14 +439,6 @@ def query():
                                           unmix_entries=decompose_entries)
             else:
                 decomp, ehull = get_ehull(tot_e=tot_e, species=species)
-            # formula = ["%s<sub>%d</sub>" % (sp.symbol, amt * 3)
-            #            for sp, amt in species["c"].items()]
-            # formula.extend(["%s<sub>%d</sub>" % (sp.symbol, amt * 2)
-            #                 for sp, amt in species["a"].items()])
-            # formula.extend(["%s<sub>%d</sub>" % (sp.symbol, amt * 3)
-            #                 for sp, amt in species["d"].items()])
-            # formula.append("O<sub>12</sub>")
-            # formula = "".join(formula)
             formula = spe2form(species)
             message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e,
                        "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
@@ -477,7 +469,7 @@ def query():
     )
 
 
-if __name__ == "__main__":
+def main():
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -498,3 +490,81 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     app.run(debug=args.debug, host=args.host, port=args.port)
+
+def profile():
+    try:
+        c_string = "Ca2+"
+        a_string = "Al3+"
+        d_string = "Si4+"
+        formula = ""
+
+        c_composition = parse_composition(c_string, "C")
+        a_composition = parse_composition(a_string, "A")
+        d_composition = parse_composition(d_string, "D")
+
+        charge = -2.0 * 12
+
+        for k in c_composition.keys():
+            charge += 3 * k.oxi_state * c_composition.get_atomic_fraction(k)
+        for k in a_composition.keys():
+            charge += 2 * k.oxi_state * a_composition.get_atomic_fraction(k)
+        for k in d_composition.keys():
+            charge += 3 * k.oxi_state * d_composition.get_atomic_fraction(k)
+
+        if len(c_composition) > 1:
+            mix_site = "c"
+        elif len(a_composition) > 1:
+            mix_site = "a"
+        elif len(d_composition) > 1:
+            mix_site = "d"
+        else:
+            mix_site = None
+
+        species = {"a": a_composition, "d": d_composition,
+                   "c": c_composition}
+
+        if abs(charge) < 0.1:
+            model, scaler = load_model_and_scaler(
+                mix_site) if mix_site else load_model_and_scaler("c")
+            inputs = get_descriptor_ext(species)
+            form_e = get_form_e_ext(inputs, model, scaler)
+            tot_e = get_tote(form_e, species)
+            if mix_site:
+                decompose_entries = get_decomposed_entries(species)
+                decomp, ehull = get_ehull(tot_e=tot_e, species=species,
+                                          unmix_entries=decompose_entries)
+            else:
+                decomp, ehull = get_ehull(tot_e=tot_e, species=species)
+            formula = spe2form(species)
+            message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e,
+                       "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
+                       (ehull * 1000)]
+            if ehull > 0:
+                reaction = []
+                for k, v in decomp.items():
+                    comp = k.composition
+                    rcomp, f = comp.get_reduced_composition_and_factor()
+                    reaction.append(
+                        '%.3f <a href="https://www.materialsproject.org/materials/%s">%s</a>'
+                        % (v * f / comp.num_atoms * 20, k.entry_id,
+                           html_formula(comp.reduced_formula)))
+                message.append("Decomposition: " + " + ".join(reaction))
+
+            message = "<br>".join(message)
+        else:
+            message = "Not charge neutral! Total charge = %.0f" % charge
+    except Exception as ex:
+        message = str(ex)
+
+    print(message)
+
+
+if __name__ == "__main__":
+    # main()
+
+    import cProfile, pstats, os
+
+    cProfile.run('profile()', 'stats')
+    p = pstats.Stats('stats')
+    p.sort_stats('cumulative').print_stats(30)
+    os.remove('stats')
