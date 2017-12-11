@@ -2,6 +2,8 @@ import os
 import pandas as pd
 import re
 import pickle
+import json
+import gzip
 
 from keras.models import load_model
 
@@ -9,7 +11,7 @@ from monty.serialization import loadfn
 
 from pymatgen import MPRester, Composition
 from pymatgen.core.periodic_table import get_el_sp
-from pymatgen.entries.computed_entries import ComputedEntry
+from pymatgen.entries.computed_entries import ComputedStructureEntry, ComputedEntry
 from pymatgen.entries.compatibility import MaterialsProjectCompatibility
 from pymatgen.analysis.phase_diagram import PhaseDiagram
 from pymatgen.io.vasp.sets import _load_yaml_config
@@ -24,12 +26,19 @@ CONFIG = _load_yaml_config("MPRelaxSet")
 LDAUU = CONFIG["INCAR"]['LDAUU']['O']
 
 ENTRIES_PATH = os.path.join(DATA_DIR, "garnet_entries_unique.json")
-GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet_calc_entries.json")
+GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet_calc_entries.json.gz")
 BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
 
 GARNET_ENTRIES_UNIQUE = loadfn(ENTRIES_PATH)
-GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
+
+with gzip.open(GARNET_CALC_ENTRIES_PATH, "rb") as f:
+    GARNET_CALC_ENTRIES_DICT = json.loads(f.read().decode("ascii"))
+GARNET_CALC_ENTRIES = [ComputedStructureEntry.from_dict(entry) \
+                       for entry in GARNET_CALC_ENTRIES_DICT]
+
+
+
 GARNET_ELS = {
     'C': [get_el_sp(i) for i in
           ['Bi3+', 'Hf4+', 'Zr4+', 'La3+', 'Pr3+', 'Nd3+', 'Sm3+', 'Eu3+',
