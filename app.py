@@ -463,7 +463,7 @@ def query():
     return make_response(render_template(
         'index.html',
         c_string=c_string, a_string=a_string, d_string=d_string,
-        formula=formula,
+        formula=html_formula(formula),
         message=message
     )
     )
@@ -490,6 +490,7 @@ def main():
 
     args = parser.parse_args()
     app.run(debug=args.debug, host=args.host, port=args.port)
+
 
 def profile():
     try:
@@ -560,11 +561,11 @@ def profile():
 
 
 if __name__ == "__main__":
-    # main()
-
-    import cProfile, pstats, os
-
-    cProfile.run('profile()', 'stats')
-    p = pstats.Stats('stats')
-    p.sort_stats('cumulative').print_stats(30)
-    os.remove('stats')
+    main()
+    #
+    # import cProfile, pstats, os
+    #
+    # cProfile.run('profile()', 'stats')
+    # p = pstats.Stats('stats')
+    # p.sort_stats('cumulative').print_stats(30)
+    # os.remove('stats')
