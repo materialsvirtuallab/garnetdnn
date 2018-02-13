@@ -1,7 +1,7 @@
 Flask==0.12.2
 ruamel.yaml==0.15.35
 monty==1.0.2
-pymatgen==2018.1.29
+pymatgen==2018.2.13
 scikit-learn==0.19.1
 tensorflow==1.5.0
 keras==2.1.3
