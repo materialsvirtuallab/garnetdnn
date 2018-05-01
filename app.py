@@ -152,6 +152,7 @@ def get_decomposed_entries(species):
                       for spe, amt in unmix_species[site].items()])
         if not abs(charge - 2 * 12) < 0.1:
             continue
+        print(unmix_species)
         descriptors = get_descriptor_ext(unmix_species)
         form_e = get_form_e_ext(descriptors, model, scaler)
         tot_e = get_tote(form_e, unmix_species)
@@ -211,14 +212,20 @@ def get_descriptor_ext(species):
         'a': 7,
         'd': 18
     }
+    CN = {
+        'c': 'VIII',
+        'a': 'VI',
+        'd': 'IV'
+    }
 
     sites = ['c', 'a', 'd']
     mix_site = [site for site in sites if len(species[site]) == 2]
     if not mix_site:
-        # unmixed type
+        # use ext-c model for unmixed type
         mix_site = 'c'
-        input_spe = [el for site in ['c', 'c', 'a', 'd']
+        input_spe = [(el, site) for site in ['c', 'c', 'a', 'd']
                      for el in species[site]]
+
     else:
         # mixed type
         mix_site = mix_site[0]
@@ -229,11 +236,11 @@ def get_descriptor_ext(species):
             spes[mix_site],
             key=lambda k: (spes[mix_site][k], k),
             reverse=True if mix_site == 'a' else False)
-        input_spe = [el for site in ['%s_sorted' % mix_site] + sites
+        input_spe = [(el,site) for site in ['%s_sorted' % mix_site] + sites
                      for el in spes[site]]
 
-    descriptors = [(get_el_sp(spe).ionic_radius, get_el_sp(spe).X)
-                   for spe in input_spe]
+    descriptors = [(get_el_sp(el).ionic_radius, get_el_sp(el).X)
+                   for el,site in input_spe]
     descriptors = list(sum(descriptors, ()))
     descriptors_config = [descriptors + binary_encode(config, mix_site)
                           for config in range(0, ORDERINGS[mix_site])]
