@@ -32,11 +32,7 @@ BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
 GARNET_ENTRIES_UNIQUE = loadfn(ENTRIES_PATH)
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
 
-with gzip.open(GARNET_CALC_ENTRIES_PATH, "rb") as f:
-    GARNET_CALC_ENTRIES_DICT = json.loads(f.read().decode("ascii"))
-GARNET_CALC_ENTRIES = [ComputedStructureEntry.from_dict(entry) \
-                       for entry in GARNET_CALC_ENTRIES_DICT]
-
+GARNET_CALC_ENTRIES = None
 
 
 GARNET_ELS = {
@@ -377,6 +373,12 @@ def get_ehull(tot_e, species, unmix_entries=None):
 
 @app.route('/', methods=['GET'])
 def index():
+    global GARNET_CALC_ENTRIES
+    if GARNET_CALC_ENTRIES is None:
+        with gzip.open(GARNET_CALC_ENTRIES_PATH, "rb") as f:
+            GARNET_CALC_ENTRIES_DICT = json.load(f)
+        GARNET_CALC_ENTRIES = [ComputedStructureEntry.from_dict(entry) \
+                               for entry in GARNET_CALC_ENTRIES_DICT]
     return make_response(render_template('index.html'))
 
 
