@@ -26,7 +26,7 @@ CONFIG = _load_yaml_config("MPRelaxSet")
 LDAUU = CONFIG["INCAR"]['LDAUU']['O']
 
 ENTRIES_PATH = os.path.join(DATA_DIR, "garnet_entries_unique.json")
-GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet_calc_entries.json.gz")
+GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet_calc_entries.json")
 BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
 
 GARNET_ENTRIES_UNIQUE = loadfn(ENTRIES_PATH)
@@ -375,10 +375,10 @@ def get_ehull(tot_e, species, unmix_entries=None):
 def index():
     global GARNET_CALC_ENTRIES
     if GARNET_CALC_ENTRIES is None:
-        with gzip.open(GARNET_CALC_ENTRIES_PATH, "rb") as f:
-            GARNET_CALC_ENTRIES_DICT = json.load(f)
-        GARNET_CALC_ENTRIES = [ComputedStructureEntry.from_dict(entry) \
-                               for entry in GARNET_CALC_ENTRIES_DICT]
+
+        GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
+        # GARNET_CALC_ENTRIES = [ComputedStructureEntry.from_dict(entry) \
+        #                        for entry in GARNET_CALC_ENTRIES_DICT]
     return make_response(render_template('index.html'))
 
 
