@@ -17,15 +17,16 @@
             }
 
         });
+
     </script>
-    {%  block top_javascript %}
-    {%  endblock %}
-    <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/themes/smoothness/jquery-ui.css" />
+    {% block top_javascript %}
+    {% endblock %}
+    <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.11.1/themes/smoothness/jquery-ui.css"/>
     <link rel=stylesheet type=text/css
           href="{{ url_for('static', filename='style.css') }}">
 
-    {%  block css %}
-    {%  endblock %}
+    {% block css %}
+    {% endblock %}
 
 </head>
 <body>
@@ -35,16 +36,18 @@
         <div id="menu">
             <ul>
                 <li id="li-home">
-                    <a href="/">home</a>
+                    <a href="/">Garnet</a>
+                    <a href="/perovskite_query">Perovskite</a>
                 </li>
             </ul>
         </div>
     </div>
 </div>
 
+
 <div id="content">
-{% block content %}
-{% endblock %}
+    {% block content %}
+    {% endblock %}
 </div>
 </body>
 </html>
