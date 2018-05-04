@@ -47,11 +47,8 @@ SITE_OCCU = {'a': 2, 'b': 2}
 m = MPRester("xNebFpxTfLhTnnIH")
 
 
-PEROVSKITE_CALC_ENTRIES = None
-def load_calc_entries():
-    global PEROVSKITE_CALC_ENTRIES
-    if PEROVSKITE_CALC_ENTRIES is None:
-        PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
+PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
+        
 
 
 def load_model_and_scaler(model_type):

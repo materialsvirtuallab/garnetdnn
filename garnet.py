@@ -52,12 +52,8 @@ m = MPRester("xNebFpxTfLhTnnIH")
 
 MODELS = {}
 
-GARNET_CALC_ENTRIES = None
-def load_calc_entries():
-
-    global GARNET_CALC_ENTRIES
-    if GARNET_CALC_ENTRIES is None:
-        GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
+GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
+        
 
 def load_model_and_scaler(model_type):
     """
