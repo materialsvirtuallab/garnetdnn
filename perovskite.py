@@ -2,7 +2,7 @@ import os
 import pandas as pd
 import re
 import pickle
-
+import keras
 from keras.models import load_model
 
 from monty.serialization import loadfn
@@ -67,6 +67,7 @@ def load_model_and_scaler(model_type):
         model (keras.model)
         scaler(keras.StandardScaler)
     """
+    keras.backend.clear_session()
     if model_type not in MODELS:
         model = load_model(os.path.join(MODEL_DIR,
                                         "model_ext_%s.h5" % model_type))
