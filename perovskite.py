@@ -3,6 +3,7 @@ import pandas as pd
 import re
 import pickle
 import keras
+import tensorflow as tf
 from keras.models import load_model
 
 from monty.serialization import loadfn
@@ -23,7 +24,7 @@ BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
 
 PEROVSKITE_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "perov_calc_entries.json")
-# PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
+PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
 
 PEROVSKITE_ELS = {
     'A': [get_el_sp(i) for i in
@@ -47,11 +48,7 @@ SITE_OCCU = {'a': 2, 'b': 2}
 m = MPRester("xNebFpxTfLhTnnIH")
 
 
-PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
-        
-
-
-def load_model_and_scaler(model_type):
+def lazy_load_model_and_scaler(model_type):
     """
     Load model and scaler for Ef prediction.
 
@@ -74,6 +71,30 @@ def load_model_and_scaler(model_type):
         MODELS[model_type] = model, scaler
         return model, scaler
     return MODELS[model_type]
+
+
+def load_model_and_scaler(model_type):
+    """
+    Load model and scaler for Ef prediction.
+
+    Args:
+        model_type (str): type of models
+            ext_a : Extended model trained on unmix+amix
+            ext_b : Extended model trained on unmix+bmix
+
+    Returns:
+        model (keras.model)
+        scaler(keras.StandardScaler)
+    """
+
+    model = load_model(os.path.join(MODEL_DIR,
+                                    "model_ext_%s.h5" % model_type))
+    graph = tf.get_default_graph()
+    with open(os.path.join(MODEL_DIR,
+                           "scaler_ext_%s.pkl" % model_type), "rb") as f:
+        scaler = pickle.load(f)
+
+    return model, scaler, graph
 
 
 def html_formula(f):
@@ -126,7 +147,7 @@ def get_decomposed_entries(species):
                     yield spe_copy
 
     decompose_entries = []
-    model, scaler = load_model_and_scaler("a")
+    model, scaler, graph = load_model_and_scaler("a")
     for unmix_species in decomposed(species):
         charge = sum([spe.oxi_state * amt * SITE_OCCU[site]
                       for site in ['a', 'b']
@@ -134,7 +155,8 @@ def get_decomposed_entries(species):
         if not abs(charge - 2 * 6) < 0.1:
             continue
         descriptors = get_descriptor_ext(unmix_species)
-        form_e = get_form_e_ext(descriptors, model, scaler)
+        with graph.as_default():
+            form_e = get_form_e_ext(descriptors, model, scaler)
         tot_e = get_tote(form_e, unmix_species)
         entry = prepare_entry(tot_e, unmix_species)
         compat = MaterialsProjectCompatibility()

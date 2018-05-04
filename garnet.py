@@ -1,9 +1,10 @@
 import os
-import pandas as pd
 import pickle
 
+import pandas as pd
+import tensorflow as tf
 from keras.models import load_model
-import keras
+
 from monty.serialization import loadfn
 
 from pymatgen import MPRester, Composition
@@ -23,10 +24,8 @@ GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet_calc_entries.json")
 BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
 
 GARNET_ENTRIES_UNIQUE = loadfn(ENTRIES_PATH)
-# GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
+GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
-
-
 
 GARNET_ELS = {
     'C': [get_el_sp(i) for i in
@@ -52,8 +51,32 @@ m = MPRester("xNebFpxTfLhTnnIH")
 
 MODELS = {}
 
-GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
-        
+
+def lazy_load_model_and_scaler(model_type):
+    """
+    Load model and scaler for Ef prediction.
+
+    Args:
+        model_type (str): type of models
+            ext_c : Extended model trained on unmix+cmix
+            ext_a : Extended model trained on unmix+amix
+            ext_d : Extended model trained on unmix+dmix
+
+    Returns:
+        model (keras.model)
+        scaler(keras.StandardScaler)
+    """
+    if model_type not in MODELS:
+        model = load_model(os.path.join(MODEL_DIR,
+                                        "model_ext_%s.h5" % model_type))
+        graph = tf.get_default_graph()
+        with open(os.path.join(MODEL_DIR,
+                               "scaler_ext_%s.pkl" % model_type), "rb") as f:
+            scaler = pickle.load(f)
+        MODELS[model_type] = model, scaler, graph
+        return model, scaler, graph
+    return MODELS[model_type]
+
 
 def load_model_and_scaler(model_type):
     """
@@ -69,16 +92,15 @@ def load_model_and_scaler(model_type):
         model (keras.model)
         scaler(keras.StandardScaler)
     """
-    keras.backend.clear_session()
-    if model_type not in MODELS:
-        model = load_model(os.path.join(MODEL_DIR,
-                                        "model_ext_%s.h5" % model_type))
-        with open(os.path.join(MODEL_DIR,
-                               "scaler_ext_%s.pkl" % model_type), "rb") as f:
-            scaler = pickle.load(f)
-        MODELS[model_type] = model, scaler
-        return model, scaler
-    return MODELS[model_type]
+
+    model = load_model(os.path.join(MODEL_DIR,
+                                    "model_ext_%s.h5" % model_type))
+    graph = tf.get_default_graph()
+    with open(os.path.join(MODEL_DIR,
+                           "scaler_ext_%s.pkl" % model_type), "rb") as f:
+        scaler = pickle.load(f)
+
+    return model, scaler, graph
 
 
 def binary_encode(config, mix_site):
@@ -133,7 +155,7 @@ def get_decomposed_entries(species):
                     yield spe_copy
 
     decompose_entries = []
-    model, scaler = load_model_and_scaler("c")
+    model, scaler, graph = load_model_and_scaler("c")
     for unmix_species in decomposed(species):
         charge = sum([spe.oxi_state * amt * SITE_OCCU[site]
                       for site in ['a', 'c', 'd']
@@ -141,7 +163,8 @@ def get_decomposed_entries(species):
         if not abs(charge - 2 * 12) < 0.1:
             continue
         descriptors = get_descriptor_ext(unmix_species)
-        form_e = get_form_e_ext(descriptors, model, scaler)
+        with graph.as_default():
+            form_e = get_form_e_ext(descriptors, model, scaler)
         tot_e = get_tote(form_e, unmix_species)
         entry = prepare_entry(tot_e, unmix_species)
         compat = MaterialsProjectCompatibility()
@@ -251,7 +274,6 @@ def get_form_e_ext(descriptors_ext, model, scaler):
     Returns:
         predicted_ef (float): the predicted formation Energy.
     """
-
     inputs_ext_scaled = scaler.transform(descriptors_ext)
     form_e = min(model.predict(inputs_ext_scaled))[0]
 
