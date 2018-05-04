@@ -27,6 +27,7 @@ $(function() {
 
 
 
+
 </script>
 {% endblock %}
 
@@ -52,8 +53,8 @@ $(function() {
 <p class="help-p"><b>Instructions</b></p>
 <p class="help-p">Enter species in the A and B sites of the prototypical ABO<sub>3</sub> perovskite crystal.</p>
 <ul>
-    <li>"Ca2+" means only one type of species (Ca<sup>2+</sup>) is present in the site.</li>
-    <li>"Ca2+:1 Mg2+:1" means Ca<sup>2+</sup> and Mg<sup>2+</sup> are present in the site in the ratio of 1:1.</li>
+    <li>"Ba2+" means only one type of species (Ba<sup>2+</sup>) is present in the site.</li>
+    <li>"Ba2+:1 Mg2+:1" means Ba<sup>2+</sup> and Ca<sup>2+</sup> are present in the site in the ratio of 1:1.</li>
 </ul>
 <p class="help-p">
     Only 1:1 mixing is allowed in the A and B sites.
@@ -61,8 +62,8 @@ $(function() {
 
 <form action="/perovskite_query" method="get" name="query">
     <p class="query">
-        <label>A: </label><input type="text" name="a_string" placeholder="E.g., Ca2+" value="{{a_string}}" size="20">
-        <label>B: </label><input type="text" name="b_string" placeholder="E.g., Ti4+" value="{{b_string}}" size="20">
+        <label>A: </label><input type="text" name="a_string" placeholder="E.g., Ba2+" value="{{a_string}}" size="20">
+        <label>B: </label><input type="text" name="b_string" placeholder="E.g., Zr4+" value="{{b_string}}" size="20">
     </p>
     <p class="query">
         <input type="submit" name="submit" value="Compute">
@@ -78,6 +79,7 @@ $(function() {
 <ul>
     <li><i>E<sub>f</sub></i>: Formation energy from binary oxides of same oxidation state</li>
     <li><i>E<sub>hull</sub></i>: Energy above convex hull</li>
+    <li><i>Formula unit (fu) </sub></i>: {{ formula | safe }}</li>
 </ul>
 
 {% endif %}
