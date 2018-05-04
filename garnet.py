@@ -23,10 +23,10 @@ GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet_calc_entries.json")
 BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
 
 GARNET_ENTRIES_UNIQUE = loadfn(ENTRIES_PATH)
-GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
+# GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
 
-# GARNET_CALC_ENTRIES = None
+
 
 GARNET_ELS = {
     'C': [get_el_sp(i) for i in
@@ -52,6 +52,12 @@ m = MPRester("xNebFpxTfLhTnnIH")
 
 MODELS = {}
 
+GARNET_CALC_ENTRIES = None
+def load_calc_entries():
+
+    global GARNET_CALC_ENTRIES
+    if GARNET_CALC_ENTRIES is None:
+        GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
 
 def load_model_and_scaler(model_type):
     """
@@ -346,6 +352,7 @@ def get_ehull(tot_e, species, unmix_entries=None):
     Returns:
         ehull (float): energy above hull.
     """
+    load_calc_entries()
     formula = spe2form(species)
     composition = Composition(formula)
     unmix_entries = [] if unmix_entries is None else unmix_entries

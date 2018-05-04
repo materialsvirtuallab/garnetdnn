@@ -23,7 +23,7 @@ BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
 
 PEROVSKITE_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "perov_calc_entries.json")
-PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
+# PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
 
 PEROVSKITE_ELS = {
     'A': [get_el_sp(i) for i in
@@ -45,6 +45,13 @@ PEROVSKITE_ELS = {
 MODELS = {}
 SITE_OCCU = {'a': 2, 'b': 2}
 m = MPRester("xNebFpxTfLhTnnIH")
+
+
+PEROVSKITE_CALC_ENTRIES = None
+def load_calc_entries():
+    global PEROVSKITE_CALC_ENTRIES
+    if PEROVSKITE_CALC_ENTRIES is None:
+        PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
 
 
 def load_model_and_scaler(model_type):
@@ -336,6 +343,7 @@ def get_ehull(tot_e, species, unmix_entries=None):
     Returns:
         ehull (float): energy above hull.
     """
+    load_calc_entries()
     formula = spe2form(species)
     composition = Composition(formula)
     unmix_entries = [] if unmix_entries is None else unmix_entries

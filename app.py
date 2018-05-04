@@ -12,10 +12,6 @@ def html_formula(f):
 
 @app.route('/', methods=['GET'])
 def index():
-    global GARNET_CALC_ENTRIES
-    if garnet.GARNET_CALC_ENTRIES is None:
-
-        GARNET_CALC_ENTRIES = loadfn(garnet.GARNET_CALC_ENTRIES_PATH)
     return make_response(render_template('index.html'))
 
 @app.route('/query', methods=['GET'])
