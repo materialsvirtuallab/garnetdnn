@@ -1,11 +1,10 @@
 import os
-import pandas as pd
 import pickle
 
-from keras.models import load_model
-import keras
-from keras import backend as K
+import pandas as pd
 import tensorflow as tf
+from keras.models import load_model
+
 from monty.serialization import loadfn
 
 from pymatgen import MPRester, Composition
@@ -51,7 +50,6 @@ SITE_OCCU = {'c': 3, 'a': 2, 'd': 3}
 m = MPRester("xNebFpxTfLhTnnIH")
 
 MODELS = {}
-
 
 
 def lazy_load_model_and_scaler(model_type):
