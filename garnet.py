@@ -348,7 +348,6 @@ def get_ehull(tot_e, species, unmix_entries=None):
     Returns:
         ehull (float): energy above hull.
     """
-    load_calc_entries()
     formula = spe2form(species)
     composition = Composition(formula)
     unmix_entries = [] if unmix_entries is None else unmix_entries
