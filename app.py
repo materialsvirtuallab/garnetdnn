@@ -157,6 +157,9 @@ def query():
 #
 #     print(message)
 
+@app.route('/perovskite', methods=['GET'])
+def perovskite_index():
+    return make_response(render_template('index_perov.html'))
 
 @app.route('/perovskite_query')
 def perovskite_query():
