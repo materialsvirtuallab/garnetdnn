@@ -12,7 +12,11 @@ from pymatgen.core.periodic_table import get_el_sp
 from pymatgen.entries.computed_entries import ComputedEntry
 from pymatgen.entries.compatibility import MaterialsProjectCompatibility
 from pymatgen.analysis.phase_diagram import PhaseDiagram
+from pymatgen.analysis.structure_matcher import StructureMatcher
 from pymatgen.io.vasp.sets import _load_yaml_config
+
+from pymatgen.analysis.chemenv.coordination_environments.coordination_geometry_finder import LocalGeometryFinder
+from pymatgen.analysis.chemenv.coordination_environments.chemenv_strategies import SimplestChemenvStrategy
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data/garnet")
 MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models/garnet")
@@ -51,6 +55,9 @@ m = MPRester("xNebFpxTfLhTnnIH")
 
 MODELS = {}
 
+PROTOTYPE = None
+PROTOTYPE_TERNARY = None
+MATCHER = None
 
 def lazy_load_model_and_scaler(model_type):
     """
@@ -162,14 +169,20 @@ def get_decomposed_entries(species):
                       for spe, amt in unmix_species[site].items()])
         if not abs(charge - 2 * 12) < 0.1:
             continue
-        descriptors = get_descriptor_ext(unmix_species)
-        with graph.as_default():
+        formula = spe2form(unmix_species)
+        calc_entries = [entry for entry in GARNET_CALC_ENTRIES \
+                        if entry.name == Composition(formula).reduced_formula]
+        if calc_entries:
+            for entry in calc_entries:
+                decompose_entries.append(entry)
+        else:
+            descriptors = get_descriptor_ext(unmix_species)
             form_e = get_form_e_ext(descriptors, model, scaler)
-        tot_e = get_tote(form_e, unmix_species)
-        entry = prepare_entry(tot_e, unmix_species)
-        compat = MaterialsProjectCompatibility()
-        entry = compat.process_entry(entry)
-        decompose_entries.append(entry)
+            tot_e = get_tote(form_e, unmix_species)
+            entry = prepare_entry(tot_e, unmix_species)
+            compat = MaterialsProjectCompatibility()
+            entry = compat.process_entry(entry)
+            decompose_entries.append(entry)
 
     return decompose_entries
 
@@ -249,7 +262,7 @@ def get_descriptor_ext(species):
         input_spe = [(el, site) for site in ['%s_sorted' % mix_site] + sites
                      for el in spes[site]]
 
-    descriptors = [(get_el_sp(el).ionic_radius, get_el_sp(el).X)
+    descriptors = [(get_el_sp(el).get_shannon_radius(cn=CN[site[0]]), get_el_sp(el).X)
                    for el, site in input_spe]
     descriptors = list(sum(descriptors, ()))
     descriptors_config = [descriptors + binary_encode(config, mix_site)
@@ -356,7 +369,49 @@ def prepare_entry(tot_e, species):
     return ce
 
 
-def get_ehull(tot_e, species, unmix_entries=None):
+
+
+
+def filter_entries(all_entries, composition, return_removed=False):
+    """
+    Filter out the entry with exact same structure as queried entry among the
+    entries in queried chemical space obtained from Materials Project.
+
+    Used Pymatgen.analysis.structure_matcher.fit_anonymous to match the prototype
+    of give structures.
+
+    Args:
+         all_entries (list): entries in queried chemical space obtained from Materials Project
+         composition (Composition): composition of queried entry
+         return_removed (bool): If True, return the filtered entries
+
+    Returns:
+        filtered_entries (list)
+    """
+    global MATCHER, PROTOTYPE, PROTOTYPE_TERNARY
+    if not MATCHER:
+        MATCHER = StructureMatcher(ltol=0.2, stol=0.3, angle_tol=5, primitive_cell=True)
+    if not PROTOTYPE or PROTOTYPE_TERNARY:
+        # PROTOTYPE for A=D compositions
+        PROTOTYPE = m.get_structure_by_material_id("mp-3050").get_primitive_structure()
+        # PROTOTYPE for A!=D compositions
+        PROTOTYPE_TERNARY = PROTOTYPE.copy()
+        a_sites = [60, 61, 62, 63, 64, 65, 66, 67]
+        for site_ind in a_sites:
+            PROTOTYPE_TERNARY.replace(site_ind, {"Ga": 1})
+    p = PROTOTYPE_TERNARY if len(composition) > 3 else PROTOTYPE
+
+    if not return_removed:
+        return   [e for e in all_entries \
+                    if e.composition.reduced_formula != composition.reduced_formula or not MATCHER.fit_anonymous(e.structure, p)]
+    else:
+        removed = [e for e in all_entries \
+                    if e.composition.reduced_formula == composition.reduced_formula \
+                    and MATCHER.fit_anonymous(e.structure, p)]
+        return removed, [e for e in all_entries if e not in removed]
+
+
+def get_ehull(tot_e, species, unmix_entries=None, all_entries=None):
     """
     Get Ehull predicted under given total energy and species. The composition
     can be either given by the species dict(for garnet only) or a formula.
@@ -373,8 +428,23 @@ def get_ehull(tot_e, species, unmix_entries=None):
     formula = spe2form(species)
     composition = Composition(formula)
     unmix_entries = [] if unmix_entries is None else unmix_entries
-    all_entries = [e for e in GARNET_ENTRIES_UNIQUE + GARNET_CALC_ENTRIES
-                   if set(e.composition).issubset(set(composition))]
+
+    if not all_entries:
+        all_entries = m.get_entries_in_chemsys([el.name for el in composition],
+                                               inc_structure=True)
+    all_entries = filter_entries(all_entries, composition)
+
+
+    all_calc_entries = [e for e in GARNET_CALC_ENTRIES
+                        if set(e.composition).issubset(set(composition)) \
+                        and e.name != composition.reduced_formula]
+
+    if all_calc_entries:
+        all_entries = all_entries + all_calc_entries
+
+    compat = MaterialsProjectCompatibility()
+    all_entries = compat.process_entries(all_entries)
+
     if not all_entries:
         raise ValueError("Incomplete")
     entry = prepare_entry(tot_e, species)
@@ -414,3 +484,36 @@ def parse_composition(s, ctype):
         raise ValueError("Oxidation states must be specified for all species!")
 
     return c
+
+
+def get_cn_sites(structure,
+                 exclude_ele=['O'],
+                 maximum_distance_factor=1.5):
+    """
+
+    :param structure: Pymatgen structure Object
+    :param exclude_ele: list of elements not to be considered, eg ['O']
+    :param maximum_distance_factor:
+    :return: a dictionary in the format {cn_1:[sites with coordination number of cn_1]}
+    """
+    lgf = LocalGeometryFinder()
+    lgf.setup_parameters(structure_refinement='none')
+    lgf.setup_structure(structure)
+    se = lgf.compute_structure_environments(maximum_distance_factor=maximum_distance_factor)
+    default_strategy = SimplestChemenvStrategy(se)
+    cn_sites = {}
+    for eqslist in se.equivalent_sites:
+        eqslist = [i for i in eqslist if i.specie.symbol not in exclude_ele]
+        if not eqslist:
+            continue
+        site = eqslist[0]
+        ces = default_strategy.get_site_coordination_environments(site)
+        ce = ces[0]
+        cn = int(ce[0].split(':')[1])
+        if cn in cn_sites:
+            cn_sites[cn].extend(eqslist)
+
+        else:
+            cn_sites.update({cn: [site for site in eqslist]})
+
+    return cn_sites

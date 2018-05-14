@@ -4,6 +4,7 @@ import re
 import pickle
 import keras
 import tensorflow as tf
+import numpy as np
 from keras.models import load_model
 
 from monty.serialization import loadfn
@@ -13,6 +14,7 @@ from pymatgen.core.periodic_table import get_el_sp
 from pymatgen.entries.computed_entries import ComputedStructureEntry, ComputedEntry
 from pymatgen.entries.compatibility import MaterialsProjectCompatibility
 from pymatgen.analysis.phase_diagram import PhaseDiagram
+from pymatgen.analysis.structure_matcher import StructureMatcher
 from pymatgen.io.vasp.sets import _load_yaml_config
 
 MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models/perovskite")
@@ -47,6 +49,9 @@ MODELS = {}
 SITE_OCCU = {'a': 2, 'b': 2}
 m = MPRester("xNebFpxTfLhTnnIH")
 
+PROTOTYPE = None
+MATCHER = None
+
 
 def lazy_load_model_and_scaler(model_type):
     """
@@ -57,10 +62,12 @@ def lazy_load_model_and_scaler(model_type):
             ext_a : Extended model trained on unmix+amix
             ext_b : Extended model trained on unmix+bmix
 
+
     Returns:
         model (keras.model)
         scaler(keras.StandardScaler)
     """
+    
     keras.backend.clear_session()
     if model_type not in MODELS:
         model = load_model(os.path.join(MODEL_DIR,
@@ -81,18 +88,28 @@ def load_model_and_scaler(model_type):
         model_type (str): type of models
             ext_a : Extended model trained on unmix+amix
             ext_b : Extended model trained on unmix+bmix
+            unmix : Model trained on unmix only
 
     Returns:
         model (keras.model)
         scaler(keras.StandardScaler)
     """
+    if model_type == 'unmix':
 
-    model = load_model(os.path.join(MODEL_DIR,
-                                    "model_ext_%s.h5" % model_type))
-    graph = tf.get_default_graph()
-    with open(os.path.join(MODEL_DIR,
-                           "scaler_ext_%s.pkl" % model_type), "rb") as f:
-        scaler = pickle.load(f)
+        model = load_model(os.path.join(MODEL_DIR,
+                                        "model_%s.h5" % model_type))
+        graph = tf.get_default_graph()
+        with open(os.path.join(MODEL_DIR,
+                               "scaler_%s.pkl" % model_type), "rb") as f:
+            scaler = pickle.load(f)
+
+    elif model_type in ['a', 'b']:
+        model = load_model(os.path.join(MODEL_DIR,
+                                        "model_ext_%s.h5" % model_type))
+        graph = tf.get_default_graph()
+        with open(os.path.join(MODEL_DIR,
+                               "scaler_ext_%s.pkl" % model_type), "rb") as f:
+            scaler = pickle.load(f)
 
     return model, scaler, graph
 
@@ -147,23 +164,34 @@ def get_decomposed_entries(species):
                     yield spe_copy
 
     decompose_entries = []
-    model, scaler, graph = load_model_and_scaler("a")
+    model, scaler, graph = load_model_and_scaler("unmix")
     for unmix_species in decomposed(species):
         charge = sum([spe.oxi_state * amt * SITE_OCCU[site]
                       for site in ['a', 'b']
                       for spe, amt in unmix_species[site].items()])
         if not abs(charge - 2 * 6) < 0.1:
             continue
-        descriptors = get_descriptor_ext(unmix_species)
-        with graph.as_default():
-            form_e = get_form_e_ext(descriptors, model, scaler)
-        tot_e = get_tote(form_e, unmix_species)
-        entry = prepare_entry(tot_e, unmix_species)
-        compat = MaterialsProjectCompatibility()
-        entry = compat.process_entry(entry)
-        decompose_entries.append(entry)
+
+        formula = spe2form(unmix_species)
+        calc_entries = [entry for entry in PEROVSKITE_CALC_ENTRIES if \
+                        entry.name == Composition(formula).reduced_formula]
+        if calc_entries:
+            for entry in calc_entries:
+                decompose_entries.append(entry)
+
+        else:
+            descriptors = get_descriptor_ext(unmix_species)
+            with graph.as_default():
+                form_e = get_form_e_ext(descriptors, model, scaler)
+            tot_e = get_tote(form_e * 10, unmix_species)
+            entry = prepare_entry(tot_e, unmix_species)
+            compat = MaterialsProjectCompatibility()
+            entry = compat.process_entry(entry)
+            decompose_entries.append(entry)
 
     return decompose_entries
+
+
 
 
 def spe2form(species):
@@ -218,10 +246,13 @@ def get_descriptor_ext(species):
     sites = ['a', 'b']
     mix_site = [site for site in sites if len(species[site]) == 2]
     if not mix_site:
-        # use ext-a model for unmixed type
-        mix_site = 'a'
-        input_spe = [k for site in ['a', 'a', 'b'] \
+
+        input_spe = [k for site in ['a', 'b'] \
                      for k in species[site]]
+        descriptors = [(get_el_sp(spe).ionic_radius, get_el_sp(spe).X) \
+                       for spe in input_spe]
+        return list(sum(descriptors, ()))
+
     else:
         # mixed type
         mix_site = mix_site[0]
@@ -262,8 +293,10 @@ def get_form_e_ext(descriptors_ext, model, scaler):
     Returns:
         predicted_ef (float): the predicted formation Energy.
     """
-
-    inputs_ext_scaled = scaler.transform(descriptors_ext)
+    try:
+        inputs_ext_scaled = scaler.transform(descriptors_ext)
+    except:
+        inputs_ext_scaled = scaler.transform(np.array(descriptors_ext).reshape(1, -1))
     form_e = min(model.predict(inputs_ext_scaled))[0]
 
     return form_e
@@ -348,8 +381,39 @@ def prepare_entry(tot_e, species):
 
     return ce
 
+def filter_entries(all_entries, composition, return_removed=False):
+    """
+    Filter out the entry with exact same structure as queried entry among the
+    entries in queried chemical space obtained from Materials Project.
 
-def get_ehull(tot_e, species, unmix_entries=None):
+    Used Pymatgen.analysis.structure_matcher.fit_anonymous to match the prototype
+    of give structures.
+
+    Args:
+         all_entries (list): entries in queried chemical space obtained from Materials Project
+         composition (Composition): composition of queried entry
+         return_removed (bool): If True, return the filtered entries
+
+    Returns:
+        filtered_entries (list)
+    """
+    global MATCHER, PROTOTYPE
+    if not MATCHER:
+        MATCHER = StructureMatcher(ltol=0.2, stol=0.3, angle_tol=5, primitive_cell=True)
+    if not PROTOTYPE:
+        PROTOTYPE = m.get_structure_by_material_id("mp-4019").get_primitive_structure()
+
+    if not return_removed:
+        return   [e for e in all_entries \
+                    if e.composition.reduced_formula != composition.reduced_formula \
+                    or not MATCHER.fit_anonymous(e.structure, PROTOTYPE)]
+    else:
+        removed = [e for e in all_entries \
+                    if e.composition.reduced_formula == composition.reduced_formula \
+                    and MATCHER.fit_anonymous(e.structure, PROTOTYPE)]
+        return removed, [e for e in all_entries if e not in removed]
+
+def get_ehull(tot_e, species, unmix_entries=None, all_entries=None):
     """
     Get Ehull predicted under given total energy and species. The composition
     can be either given by the species dict(for garnet only) or a formula.
@@ -366,11 +430,19 @@ def get_ehull(tot_e, species, unmix_entries=None):
     formula = spe2form(species)
     composition = Composition(formula)
     unmix_entries = [] if unmix_entries is None else unmix_entries
-    all_entries = m.get_entries_in_chemsys([el.name for el in composition.elements])
+    if not all_entries:
+        all_entries = m.get_entries_in_chemsys([el.name for el in composition.elements],
+                                               inc_structure=True)
+    all_entries = filter_entries(all_entries, composition)
+    # print("These entries find match and removed: ")
+    # print(" ".join([e.entry_id for e in removed]))
     all_calc_entries = [e for e in PEROVSKITE_CALC_ENTRIES
-                        if set(e.composition).issubset(set(composition))]
+                        if set(e.composition).issubset(set(composition)) \
+                        and e.name != composition.reduced_formula]
+
     if all_calc_entries:
         all_entries = all_entries + all_calc_entries
+
     compat = MaterialsProjectCompatibility()
     all_entries = compat.process_entries(all_entries)
     if not all_entries:

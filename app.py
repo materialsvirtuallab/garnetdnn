@@ -55,7 +55,7 @@ def query():
                 inputs = garnet.get_descriptor_ext(species)
 
                 with graph.as_default():
-                    form_e = garnet.get_form_e_ext(inputs, model, scaler)
+                    form_e = garnet.get_form_e_ext(inputs, model, scaler) * 20
                 tot_e = garnet.get_tote(form_e, species)
                 if mix_site:
                     decompose_entries = garnet.get_decomposed_entries(species)
@@ -127,14 +127,14 @@ def perovskite_query():
         if abs(charge) < 0.1:
             with tf.Session() as sess:
                 model, scaler, graph = perovskite.load_model_and_scaler(mix_site) if mix_site \
-                    else perovskite.load_model_and_scaler("a")
+                    else perovskite.load_model_and_scaler("unmix")
                 inputs = perovskite.get_descriptor_ext(species)
                 with graph.as_default():
-                    form_e = perovskite.get_form_e_ext(inputs, model, scaler)
+                    form_e = perovskite.get_form_e_ext(inputs, model, scaler) * 10
                 # form_e predicted from model is always in /atom
                 # the get_tote func always returns the tote with in /standard fu
                 # which is A2B2O6, 10 atoms
-                tot_e = perovskite.get_tote(form_e * 10, species)
+                tot_e = perovskite.get_tote(form_e , species)
                 if mix_site:
                     decompose_entries = perovskite.get_decomposed_entries(species)
                     decomp, ehull = perovskite.get_ehull(tot_e=tot_e, species=species,
@@ -142,7 +142,7 @@ def perovskite_query():
                 else:
                     decomp, ehull = perovskite.get_ehull(tot_e=tot_e, species=species)
                 formula = perovskite.spe2form(species)
-                message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % (form_e * 10),
+                message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % (form_e),
                            "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
                            (ehull * 1000)]
                 if ehull > 0:
