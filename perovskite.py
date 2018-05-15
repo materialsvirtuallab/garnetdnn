@@ -14,7 +14,7 @@ from pymatgen.core.periodic_table import get_el_sp
 from pymatgen.entries.computed_entries import ComputedStructureEntry, ComputedEntry
 from pymatgen.entries.compatibility import MaterialsProjectCompatibility
 from pymatgen.analysis.phase_diagram import PhaseDiagram
-from pymatgen.analysis.structure_matcher import StructureMatcher
+from pymatgen.analysis.structure_matcher import StructureMatcher, ElementComparator
 from pymatgen.io.vasp.sets import _load_yaml_config
 
 MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models/perovskite")
@@ -399,18 +399,16 @@ def filter_entries(all_entries, composition, return_removed=False):
     """
     global MATCHER, PROTOTYPE
     if not MATCHER:
-        MATCHER = StructureMatcher(ltol=0.2, stol=0.3, angle_tol=5, primitive_cell=True)
+        MATCHER = StructureMatcher(ltol=0.2, stol=0.3, angle_tol=5, primitive_cell=True, comparator=ElementComparator())
     if not PROTOTYPE:
         PROTOTYPE = m.get_structure_by_material_id("mp-4019").get_primitive_structure()
 
     if not return_removed:
         return   [e for e in all_entries \
-                    if e.composition.reduced_formula != composition.reduced_formula \
-                    or not MATCHER.fit_anonymous(e.structure, PROTOTYPE)]
+                    if not MATCHER.fit(e.structure, PROTOTYPE)]
     else:
         removed = [e for e in all_entries \
-                    if e.composition.reduced_formula == composition.reduced_formula \
-                    and MATCHER.fit_anonymous(e.structure, PROTOTYPE)]
+                    if MATCHER.fit(e.structure, PROTOTYPE)]
         return removed, [e for e in all_entries if e not in removed]
 
 def get_ehull(tot_e, species, unmix_entries=None, all_entries=None):
