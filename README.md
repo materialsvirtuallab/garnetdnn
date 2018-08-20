@@ -6,6 +6,8 @@ predict the formation energies and stability of garnet and perovskite crystals.
 A live version of the web application powered by Heroku is running at
 http://crystals.ai.
 
+The web application allows the user to enter the compositions of targeting garnets or perovskites, and outputs the predicted formation energy (Ef) and energy above hull (Ehull).
+
 ## Local setup
 
 To run the web application locally, simply type:
