@@ -84,16 +84,16 @@ If you are new to Python, the easiest way of installing the prerequisites is via
           "specie"(str): The element symbol of the species, eg. "Al" (for Al3+)
         }
 
-      ├──perovskite_oxi_table.json
+    ├──perovskite_oxi_table.json
         Same as garnet_oxi_table.json, excepts it contains species for generating perovskite compositions.
 
-      ├──garnet
+    ├──garnet
           ├──garnet_calc_entries.json
           ├──garnet_calc_structure_entries.json.gz
             The former contains the calculated entries(Pymatgen.ComputedEntry) for each calculated garnet compositions.
             The latter contains the calculated entries with structures.
 
-      ├──perovskite
+    ├──perovskite
           ├──perov_calc_entries.json
           ├──perov_calc_structure_entries.json.gz
             The former contains the calculated entries(Pymatgen.ComputedEntry) for each calculated perovskite compositions.
@@ -101,10 +101,26 @@ If you are new to Python, the easiest way of installing the prerequisites is via
   ├──models
 
     ├──garnet
-        The name of "unmix", "gen", "c", "a" and "d" refer to the unmixed model, the averaged model and the three ordered models for C-mixed, A-mixed and D-mixed garnets. The .h5 files are the model files whereas the scaler.pkl files are the scaler files used to normalize inputs.
+          ├──model_unmix.h5
+          ├──model_gen.h5
+          ├──model_c.h5
+          ├──model_a.h5
+          ├──model_d.h5
+          ├──scaler_unmix.pkl
+          ├──scaler_gen.pkl
+          ├──scaler_c.pkl
+          ├──scaler_a.pkl
+          ├──scaler_d.pkl
+            The name of "unmix", "gen", "c", "a" and "d" refer to the unmixed model, the averaged model and the three ordered models for C-mixed, A-mixed and D-mixed garnets. The .h5 files are the model files whereas the scaler.pkl files are the scaler files used to normalize inputs.
 
     ├──perovskite
-        The name of "unmix", "gen", "a" and "b" refer to the unmixed model, the averaged model and the two ordered models for A-mixed and B-mixed perovskites. The .h5 files are the model files whereas the scaler.pkl files are the scaler files used to normalize inputs.
+          ├──model_unmix.h5
+          ├──model_a.h5
+          ├──model_b.h5
+          ├──scaler_unmix.pkl
+          ├──scaler_a.pkl
+          ├──scaler_b.pkl
+            The name of "unmix", "gen", "a" and "b" refer to the unmixed model, the averaged model and the two ordered models for A-mixed and B-mixed perovskites. The .h5 files are the model files whereas the scaler.pkl files are the scaler files used to normalize inputs.
 
 ```  
 
