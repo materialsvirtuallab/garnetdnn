@@ -98,12 +98,12 @@ If you are new to Python, the easiest way of installing the prerequisites is via
 
     ├──garnet
           ├──model_unmix.h5
-          ├──model_gen.h5
+          ├──model_average.h5
           ├──model_c.h5
           ├──model_a.h5
           ├──model_d.h5
           ├──scaler_unmix.pkl
-          ├──scaler_gen.pkl
+          ├──scaler_average.pkl
           ├──scaler_c.pkl
           ├──scaler_a.pkl
           ├──scaler_d.pkl
