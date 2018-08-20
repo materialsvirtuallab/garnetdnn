@@ -49,16 +49,10 @@ If you are new to Python, the easiest way of installing the prerequisites is via
   ├──garnetdnn
 
     ├──formation_energy.py
-      Contains code to calculate the
-      ```math
-      E_{f}
-      ```
+      Contains code to calculate the formation energy (Ef)
 
     ├──ehull.py
-      Contains code to calculate the
-      ```math
-      E_{hull}
-      ```
+      Contains code to calculate the energy above hull (Ehull)
 
     ├──util.py
       Contains utility functions such as loading models and standardizing the format of the species of the input structure.
