@@ -9,7 +9,7 @@ from pymatgen.core.periodic_table import get_el_sp
 from garnetdnn.util import spe2form
 from pymatgen import MPRester
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data")
 BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
 BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
 STD_FORMULA = {'garnet': Composition("C3A2D3O12"),

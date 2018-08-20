@@ -4,15 +4,12 @@ import re
 
 import tensorflow as tf
 from keras.models import load_model
-
-from monty.serialization import loadfn
-
 from pymatgen import MPRester, Composition
 from pymatgen.core.periodic_table import get_el_sp
 from pymatgen.io.vasp.sets import _load_yaml_config
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data")
+MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../models")
 CONFIG = _load_yaml_config("MPRelaxSet")
 LDAUU = CONFIG["INCAR"]['LDAUU']['O']
 
@@ -90,7 +87,7 @@ def load_model_and_scaler(structure_type, model_type):
         graph(tf.graph)
     """
     MODEL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                             "models/%s" % structure_type)
+                             "../models/%s" % structure_type)
     model = load_model(os.path.join(MODEL_DIR,
                                     "model_%s.h5" % model_type))
     graph = tf.get_default_graph()

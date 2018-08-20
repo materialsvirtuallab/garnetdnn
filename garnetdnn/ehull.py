@@ -13,8 +13,8 @@ from pymatgen.entries.computed_entries import ComputedEntry
 
 from pymatgen.io.vasp.sets import _load_yaml_config
 
-from formation_energy import get_descriptor, get_form_e, get_tote
-from util import load_model_and_scaler, spe2form
+from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote
+from garnetdnn.util import load_model_and_scaler, spe2form
 
 CONFIG = _load_yaml_config("MPRelaxSet")
 LDAUU = CONFIG["INCAR"]['LDAUU']['O']
@@ -30,7 +30,7 @@ SITE_INFO = {'garnet': {'c': {"num_atoms": 3, "max_ordering": 20, "cn": "VIII"},
              'perovskite': {'a': {"num_atoms": 2, "max_ordering": 10, 'cn': "XII"},
                             'b': {"num_atoms": 2, "max_ordering": 10, 'cn': "VI"}}}
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data")
 GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet/garnet_calc_entries.json")
 GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
 PEROVSKITE_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "perovskite/perov_calc_entries.json")

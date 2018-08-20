@@ -3,9 +3,9 @@ import re
 import os
 from flask import render_template, make_response, request, Flask
 import tensorflow as tf
-from ehull import get_decomposed_entries, get_ehull
-from formation_energy import get_descriptor, get_form_e, get_tote
-from util import load_model_and_scaler, spe2form, html_formula, parse_composition
+from garnetdnn.ehull import get_decomposed_entries, get_ehull
+from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote
+from garnetdnn.util import load_model_and_scaler, spe2form, html_formula, parse_composition
 
 app = Flask(__name__)
 
