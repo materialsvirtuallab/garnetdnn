@@ -99,6 +99,7 @@ If you are new to Python, the easiest way of installing the prerequisites is via
             The former contains the calculated entries(Pymatgen.ComputedEntry) for each calculated perovskite compositions.
             The latter contains the calculated entries with structures.
   ├──models
+
     ├──garnet
         The name of "unmix", "gen", "c", "a" and "d" refer to the unmixed model, the averaged model and the three ordered models for C-mixed, A-mixed and D-mixed garnets. The .h5 files are the model files whereas the scaler.pkl files are the scaler files used to normalize inputs.
 
@@ -107,7 +108,7 @@ If you are new to Python, the easiest way of installing the prerequisites is via
 
 ```  
 
-## Usage Example
+## Data and Models loading
 
 All the data is stored in .json format
 
@@ -124,7 +125,7 @@ data = loadfn("data/binary_oxide_entries.json")
 ```
 
 All the model and scalers are in .h5 and .pkl format respectively.
-They can be loaded using keras or pickle, or they can be loaded together using using garnetdnn.util.load_model_and_scaler
+They can be loaded using keras or pickle, or they can be loaded together using garnetdnn.util.load_model_and_scaler
 
 - Example to load garnet unmix model and scaler
 
