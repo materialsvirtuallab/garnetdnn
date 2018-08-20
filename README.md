@@ -18,8 +18,11 @@ and go to http://127.0.0.1:5000 on your web browser.
 
 ## How to cite
 This repos contains data and codes for the work:
+
       Title: `Deep Neural Networks for Accurate Predictions of Crystal Stability`
+
       Authors: Weike Ye , Chi Chen, Zhenbin Wang, Iek-Heng Chu, Shyue Ping Ong
+
       Correspondence and requests for materials should be addressed to Dr. Shyue Ping Ong (ongsp@eng.ucsd.edu)
 
 ##  Prerequisites
@@ -27,32 +30,41 @@ All the structures and data analysis were carried out using
   -[Pymatgen](http://pymatgen.org).
 
 All the deep learning model manipulation were carried out using
-  -[Sklearn](http://scikit-learn.org/stable/)
-  -[Keras](http://keras.io)
-  -[Tensorflow](http://www.tensorflow.org/ )
-If you are new to Python, the easiest way of installing the prerequisites is via [conda](https://conda.io/docs/index.html)
 
-All the data is stored in .json format
--Example
-```python
-import json
-with open("binary_oxide_entries.json", "r") as f:
-  data = json.load(f)
-```
+  -[Sklearn](http://scikit-learn.org/stable/)
+
+  -[Keras](http://keras.io)
+
+  -[Tensorflow](http://www.tensorflow.org/ )
+
+If you are new to Python, the easiest way of installing the prerequisites is via [conda](https://conda.io/docs/index.html)
 
 ## The structure of the repo
 ```
 ├──root_dir
+
   ├──app.py
     The main code for running the flask website.
+
   ├──garnetdnn
+
     ├──formation_energy.py
-      Contains code to calculate the $E_{f}$
+      Contains code to calculate the
+      ```math
+      E_{f}
+      ```
+
     ├──ehull.py
-      Contains code to calculate the $E_{hull}$
+      Contains code to calculate the
+      ```math
+      E_{hull}
+      ```
+
     ├──util.py
       Contains utility functions such as loading models and standardizing the format of the species of the input structure.
+
   ├──data
+
     ├──binary_oxide_entries.json
       Contains the entries(Pymatgen.ComputedStructureEntry) of the binary oxides Nb2O3 (ICSD), Eu2O3 (ICSD) and Yb2O3 (ICSD).
       They are calculated because they are not included in Materials Project database yet.
@@ -94,3 +106,24 @@ with open("binary_oxide_entries.json", "r") as f:
         The name of "unmix", "gen", "a" and "b" refer to the unmixed model, the averaged model and the two ordered models for A-mixed and B-mixed perovskites. The .h5 files are the model files whereas the scaler.pkl files are the scaler files used to normalize inputs.
 
 ```  
+
+## Usage Example
+
+All the data is stored in .json format
+
+```python
+import json
+with open("binary_oxide_entries.json", "r") as f:
+  data = json.load(f)
+```
+
+All the model and scalers can be load using garnetdnn.util.load_model_and_scaler
+
+- Example to load garnet unmix model and scaler
+
+```python
+from garnetdnn.util import load_model_and_scaler
+structure_type = 'garnet'
+model_type = 'unmix'
+model, scaler, graph = load_model_and_scaler(structure_type, model_type)
+```
