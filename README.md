@@ -19,11 +19,11 @@ and go to http://127.0.0.1:5000 on your web browser.
 ## How to cite
 This repos contains data and codes for the work:
 
-      Title: `Deep Neural Networks for Accurate Predictions of Crystal Stability`
+      Title: Deep Neural Networks for Accurate Predictions of Crystal Stability
 
       Authors: Weike Ye , Chi Chen, Zhenbin Wang, Iek-Heng Chu, Shyue Ping Ong
 
-      Correspondence and requests for materials should be addressed to Dr. Shyue Ping Ong (ongsp@eng.ucsd.edu)
+Correspondence and requests for materials should be addressed to Dr. Shyue Ping Ong (ongsp@eng.ucsd.edu)
 
 ##  Prerequisites
 All the structures and data analysis were carried out using
@@ -66,8 +66,8 @@ If you are new to Python, the easiest way of installing the prerequisites is via
   ├──data
 
     ├──binary_oxide_entries.json
-      Contains the entries(Pymatgen.ComputedStructureEntry) of the binary oxides Nb2O3 (ICSD), Eu2O3 (ICSD) and Yb2O3 (ICSD).
-      They are calculated because they are not included in Materials Project database yet.
+      Contains the entries(Pymatgen.ComputedStructureEntry) of the binary oxides Nb2O3 (ICSD 25750), Eu2O3 (ICSD 40472) and Yb2O3 (ICSD 33658).
+      They are calculated because they are not corrected included in Materials Project database yet.
       All the entries for the rest of binary oxides are from Materials Project.
 
     ├──garnet_oxi_table.json
@@ -111,15 +111,32 @@ If you are new to Python, the easiest way of installing the prerequisites is via
 
 All the data is stored in .json format
 
+- Example to load binary_oxide_entries.json
+
 ```python
 import json
-with open("binary_oxide_entries.json", "r") as f:
+with open("data/binary_oxide_entries.json", "r") as f:
   data = json.load(f)
 ```
+```python
+from monty.serialization import loadfn
+data = loadfn("data/binary_oxide_entries.json")
+```
 
-All the model and scalers can be load using garnetdnn.util.load_model_and_scaler
+All the model and scalers are in .h5 and .pkl format respectively.
+They can be loaded using keras or pickle, or they can be loaded together using using garnetdnn.util.load_model_and_scaler
 
 - Example to load garnet unmix model and scaler
+
+```python
+from kears.models import load_model
+import pickle
+model = load_model("models/garnet/model_unmix.h5")
+with open("models/garnet/scaler_unmix.pkl", "rb") as f:
+  scaler = pickle.load(f)
+```
+
+Or
 
 ```python
 from garnetdnn.util import load_model_and_scaler
