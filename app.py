@@ -1,8 +1,11 @@
 import re
+
+import os
 from flask import render_template, make_response, request, Flask
-import garnet
-import perovskite
 import tensorflow as tf
+from ehull import get_decomposed_entries, get_ehull
+from formation_energy import get_descriptor, get_form_e, get_tote
+from util import load_model_and_scaler, spe2form, html_formula, parse_composition
 
 app = Flask(__name__)
 
@@ -19,14 +22,15 @@ def index():
 @app.route('/query', methods=['GET'])
 def query():
     try:
+        structure_type = 'garnet'
         c_string = request.args.get("c_string")
         a_string = request.args.get("a_string")
         d_string = request.args.get("d_string")
         formula = ""
 
-        c_composition = garnet.parse_composition(c_string, "C")
-        a_composition = garnet.parse_composition(a_string, "A")
-        d_composition = garnet.parse_composition(d_string, "D")
+        c_composition = parse_composition(structure_type, c_string, "C")
+        a_composition = parse_composition(structure_type, a_string, "A")
+        d_composition = parse_composition(structure_type, d_string, "D")
 
         charge = -2.0 * 12
 
@@ -50,20 +54,26 @@ def query():
 
         if abs(charge) < 0.1:
             with tf.Session() as sess:
-                model, scaler, graph = garnet.load_model_and_scaler(mix_site) if mix_site \
-                    else garnet.load_model_and_scaler("c")
-                inputs = garnet.get_descriptor_ext(species)
+
+                oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                "data/garnet_oxi_table.json")
+                model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
+                    else load_model_and_scaler(structure_type, "unmix")
+                inputs = get_descriptor(structure_type, species)
 
                 with graph.as_default():
-                    form_e = garnet.get_form_e_ext(inputs, model, scaler) * 20
-                tot_e = garnet.get_tote(form_e, species)
+                    form_e = get_form_e(inputs, model, scaler) * 20
+                tot_e = get_tote(structure_type, form_e, species,
+                                 oxides_table_path=oxide_table_path)
                 if mix_site:
-                    decompose_entries = garnet.get_decomposed_entries(species)
-                    decomp, ehull = garnet.get_ehull(tot_e=tot_e, species=species,
-                                                     unmix_entries=decompose_entries)
+                    decompose_entries = get_decomposed_entries(structure_type,
+                                                               species,
+                                                               oxide_table_path)
+                    decomp, ehull = get_ehull(structure_type, tot_e, species,
+                                              unmix_entries=decompose_entries)
                 else:
-                    decomp, ehull = garnet.get_ehull(tot_e=tot_e, species=species)
-                formula = garnet.spe2form(species)
+                    decomp, ehull = get_ehull(structure_type, tot_e, species)
+                formula = spe2form(structure_type, species)
                 message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e,
                            "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
                            (ehull * 1000)]
@@ -101,12 +111,13 @@ def perovskite_index():
 @app.route('/perovskite_query')
 def perovskite_query():
     try:
+        structure_type = 'perovskite'
         a_string = request.args.get("a_string")
         b_string = request.args.get("b_string")
         formula = ""
 
-        a_composition = perovskite.parse_composition(a_string, "A")
-        b_composition = perovskite.parse_composition(b_string, "B")
+        a_composition = parse_composition(structure_type, a_string, "A")
+        b_composition = parse_composition(structure_type, b_string, "B")
 
         charge = -2.0 * 6
 
@@ -126,22 +137,27 @@ def perovskite_query():
 
         if abs(charge) < 0.1:
             with tf.Session() as sess:
-                model, scaler, graph = perovskite.load_model_and_scaler(mix_site) if mix_site \
-                    else perovskite.load_model_and_scaler("unmix")
-                inputs = perovskite.get_descriptor_ext(species)
+                oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                "data/perovskite_oxi_table.json")
+                model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
+                    else load_model_and_scaler(structure_type, "unmix")
+                inputs = get_descriptor(structure_type, species, cn_specific=False)
                 with graph.as_default():
-                    form_e = perovskite.get_form_e_ext(inputs, model, scaler) * 10
+                    form_e = get_form_e(inputs, model, scaler) * 10
                 # form_e predicted from model is always in /atom
                 # the get_tote func always returns the tote with in /standard fu
                 # which is A2B2O6, 10 atoms
-                tot_e = perovskite.get_tote(form_e , species)
+                tot_e = get_tote(structure_type, form_e, species,
+                                 oxides_table_path=oxide_table_path)
                 if mix_site:
-                    decompose_entries = perovskite.get_decomposed_entries(species)
-                    decomp, ehull = perovskite.get_ehull(tot_e=tot_e, species=species,
-                                                         unmix_entries=decompose_entries)
+                    decompose_entries = get_decomposed_entries(structure_type,
+                                                               species,
+                                                               oxide_table_path)
+                    decomp, ehull = get_ehull(structure_type, tot_e, species,
+                                              unmix_entries=decompose_entries)
                 else:
-                    decomp, ehull = perovskite.get_ehull(tot_e=tot_e, species=species)
-                formula = perovskite.spe2form(species)
+                    decomp, ehull = get_ehull(structure_type, tot_e, species)
+                formula = spe2form(structure_type, species)
                 message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % (form_e),
                            "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
                            (ehull * 1000)]
