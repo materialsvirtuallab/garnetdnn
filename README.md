@@ -1,7 +1,7 @@
 # Deep Neural Networks for Accurate Predictions of Crystal Stability
 
 This repo implements a web application utilizing a deep neural network to
-predict the formation energies and stability of garnet and perovskite crystals.
+predict the formation energies and stability of garnet and perovskite crystals, as described in Ye, W.; Chen, C.; Wang, Z.; Chu, I.-H.; Ong, S. P. Deep neural networks for accurate predictions of crystal stability. Nat. Commun. 2018, 9 (1), 3800 DOI: [10.1038/s41467-018-06322-x](http://dx.doi.org/10.1038/s41467-018-06322-x).
 
 A live version of the web application powered by Heroku is running at
 http://crystals.ai.
