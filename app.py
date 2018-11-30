@@ -6,6 +6,7 @@ import tensorflow as tf
 from garnetdnn.ehull import get_decomposed_entries, get_ehull
 from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote
 from garnetdnn.util import load_model_and_scaler, spe2form, html_formula, parse_composition
+import time
 
 app = Flask(__name__)
 
@@ -22,6 +23,7 @@ def index():
 @app.route('/query', methods=['GET'])
 def query():
     try:
+        t0 = time.time()
         structure_type = 'garnet'
         c_string = request.args.get("c_string")
         a_string = request.args.get("a_string")
@@ -63,8 +65,10 @@ def query():
 
                 with graph.as_default():
                     form_e = get_form_e(inputs, model, scaler) * 20
+
                 tot_e = get_tote(structure_type, form_e, species,
                                  oxides_table_path=oxide_table_path)
+
                 if mix_site:
                     decompose_entries = get_decomposed_entries(structure_type,
                                                                species,
@@ -73,6 +77,7 @@ def query():
                                               unmix_entries=decompose_entries)
                 else:
                     decomp, ehull = get_ehull(structure_type, tot_e, species)
+
                 formula = spe2form(structure_type, species)
                 message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e,
                            "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
@@ -89,8 +94,10 @@ def query():
                     message.append("Decomposition: " + " + ".join(reaction))
 
                 message = "<br>".join(message)
+
         else:
             message = "Not charge neutral! Total charge = %.0f" % charge
+        print(time.time() - t0)
     except Exception as ex:
         message = str(ex)
 
@@ -115,10 +122,8 @@ def perovskite_query():
         a_string = request.args.get("a_string")
         b_string = request.args.get("b_string")
         formula = ""
-
         a_composition = parse_composition(structure_type, a_string, "A")
         b_composition = parse_composition(structure_type, b_string, "B")
-
         charge = -2.0 * 6
 
         for k in a_composition.keys():

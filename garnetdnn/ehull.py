@@ -15,6 +15,7 @@ from pymatgen.io.vasp.sets import _load_yaml_config
 
 from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote
 from garnetdnn.util import load_model_and_scaler, spe2form
+import time
 
 CONFIG = _load_yaml_config("MPRelaxSet")
 LDAUU = CONFIG["INCAR"]['LDAUU']['O']
@@ -37,7 +38,9 @@ PEROVSKITE_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "perovskite/perov_calc_ent
 PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
 CALC_ENTRIES = {'garnet': GARNET_CALC_ENTRIES,
                 'perovskite': PEROVSKITE_CALC_ENTRIES}
-
+GARNET_EHULL_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet/garnet_ehull_entries.json")
+GARNET_EHULL_ENTRIES = loadfn(GARNET_EHULL_ENTRIES_PATH)
+EHULL_ENTRIES = {'garnet': GARNET_EHULL_ENTRIES}
 MATCHER = None
 PROTO = None
 
@@ -166,17 +169,17 @@ def filter_entries(structure_type, all_entries, species, return_removed=False):
     if not return_removed:
         return [e for e in all_entries \
                 if e.name != composition.reduced_formula \
-                    and not MATCHER.fit(e.structure, P)]
+                and not MATCHER.fit(e.structure, P)]
     else:
         removed = [e for e in all_entries \
                    if e.name == composition.reduced_formula \
-                    and MATCHER.fit(e.structure, P)]
+                   and MATCHER.fit(e.structure, P)]
         return removed, [e for e in all_entries if e not in removed]
 
 
 def get_ehull(structure_type, tot_e, species,
               unmix_entries=None, all_entries=None,
-              debug=False):
+              debug=False, from_mp=False):
     """
     Get Ehull predicted under given total energy and species. The composition
     can be either given by the species dict(for garnet only) or a formula.
@@ -186,6 +189,9 @@ def get_ehull(structure_type, tot_e, species,
             composition.
         species (dict): species in dictionary.
         unmix_entries (list): additional list of unmix entries.
+        all_entries(list): Manually supply the entries whithin the chemical space
+        debug(bool): Whether or not to run it in debug mode. (For test only)
+        from_mp(bool): Whether or not to query entries from MP (would take long)
 
     Returns:
         ehull (float): energy above hull.
@@ -195,8 +201,14 @@ def get_ehull(structure_type, tot_e, species,
     unmix_entries = [] if unmix_entries is None else unmix_entries
 
     if not all_entries:
-        all_entries = m.get_entries_in_chemsys([el.name for el in composition],
-                                               inc_structure=True)
+        if from_mp:
+            all_entries = m.get_entries_in_chemsys([el.name for el in composition],
+                                                   inc_structure=True)
+        else:
+            all_entries = [e for e in EHULL_ENTRIES[structure_type]
+                           if set(e.composition).issubset(set(composition)) \
+                           and e.name != composition.reduced_formula]
+
     all_entries = filter_entries(structure_type, all_entries, species)
 
     all_calc_entries = [e for e in CALC_ENTRIES[structure_type]
@@ -206,8 +218,8 @@ def get_ehull(structure_type, tot_e, species,
     if all_calc_entries:
         all_entries = all_entries + all_calc_entries
 
-    compat = MaterialsProjectCompatibility()
-    all_entries = compat.process_entries(all_entries)
+    #     compat = MaterialsProjectCompatibility()
+    #     all_entries = compat.process_entries(all_entries)
 
     if not all_entries:
         raise ValueError("Incomplete")
