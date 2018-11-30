@@ -13,6 +13,7 @@ from collections import OrderedDict
 
 app = Flask(__name__)
 MAX_CACHE = 500
+ResponseCache = OrderedDict()
 
 
 def html_formula(f):
@@ -22,9 +23,6 @@ def html_formula(f):
 @app.route('/', methods=['GET'])
 def index():
     return make_response(render_template('index.html'))
-
-
-ResponseCache = OrderedDict()
 
 
 @app.route('/query', methods=['GET'])
