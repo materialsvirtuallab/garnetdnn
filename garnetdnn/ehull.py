@@ -130,7 +130,7 @@ def prepare_entry(structure_type, tot_e, species):
     ce = ComputedEntry(composition=composition, energy=0, parameters=parameters)
     ce.uncorrected_energy = tot_e
     compat = MaterialsProjectCompatibility()
-    ce = compat.process_entry(ce) # Correction added
+    ce = compat.process_entry(ce)  # Correction added
 
     return ce
 
@@ -210,9 +210,7 @@ def get_ehull(structure_type, tot_e, species,
         else:
             all_entries = [e for e in EHULL_ENTRIES[structure_type]
                            if set(e.composition).issubset(set(composition))]
-    print(len(all_entries))
     all_entries = filter_entries(structure_type, all_entries, species)
-    print(len(all_entries))
     all_calc_entries = [e for e in CALC_ENTRIES[structure_type]
                         if set(e.composition).issubset(set(composition)) \
                         and e.name != composition.reduced_formula]
@@ -220,7 +218,7 @@ def get_ehull(structure_type, tot_e, species,
     all_calc_entries = compat.process_entries(all_calc_entries)
     if all_calc_entries:
         all_entries = all_entries + all_calc_entries
-    print(len(all_entries))
+
     if not all_entries:
         raise ValueError("Incomplete")
     entry = prepare_entry(structure_type, tot_e, species)

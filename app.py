@@ -97,10 +97,9 @@ def query():
 
         else:
             message = "Not charge neutral! Total charge = %.0f" % charge
-        print(time.time() - t0)
     except Exception as ex:
         message = str(ex)
-
+    print("Time of this query: %s"%(time.time() - t0))
     return make_response(render_template(
         'index.html',
         c_string=c_string, a_string=a_string, d_string=d_string,
@@ -118,6 +117,7 @@ def perovskite_index():
 @app.route('/perovskite_query')
 def perovskite_query():
     try:
+        t0 = time.time()
         structure_type = 'perovskite'
         a_string = request.args.get("a_string")
         b_string = request.args.get("b_string")
@@ -182,7 +182,7 @@ def perovskite_query():
             message = "Not charge neutral! Total charge = %.0f" % charge
     except Exception as ex:
         message = str(ex)
-
+    print("Time of this query: %s" % (time.time() - t0))
     return make_response(render_template(
         'index_perov.html',
         a_string=a_string, b_string=b_string,
