@@ -1,6 +1,10 @@
+import dash
+import dash_core_components as dcc
+import dash_html_components as html
 import re
 
 import os
+
 from flask import render_template, make_response, request, Flask
 from flask.ext.cache import Cache
 import tensorflow as tf
@@ -15,15 +19,20 @@ cache = Cache(config={'CACHE_TYPE': 'simple'})
 cache.init_app(app)
 MAX_CACHE = 500
 
+
 def html_formula(f):
     return re.sub(r"([\d.]+)", r"<sub>\1</sub>", f)
+
 
 @cache.cached(timeout=50)
 @app.route('/', methods=['GET'])
 def index():
     return make_response(render_template('index.html'))
 
+
 ResponseCache = OrderedDict()
+
+
 @app.route('/query', methods=['GET'])
 def query():
     try:
@@ -66,7 +75,7 @@ def query():
                 decomp = response['decomp']
                 ehull = response['ehull']
                 # print("Read from Cache")
-            else: # Cache miss
+            else:  # Cache miss
                 with tf.Session() as sess:
 
                     oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -94,6 +103,7 @@ def query():
                 if len(ResponseCache) > MAX_CACHE:
                     ResponseCache.popitem(last=False)
                 ResponseCache.update({formula: response})
+
             message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e,
                        "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
                        (ehull * 1000)]
@@ -115,7 +125,7 @@ def query():
             message = "Not charge neutral! Total charge = %.0f" % charge
     except Exception as ex:
         message = str(ex)
-    print("Time of this query: %s"%(time.time() - t0))
+    print("Time of this query: %s" % (time.time() - t0))
     return make_response(render_template(
         'index.html',
         c_string=c_string, a_string=a_string, d_string=d_string,
@@ -164,7 +174,7 @@ def perovskite_query():
                 decomp = response['decomp']
                 ehull = response['ehull']
                 print("Read from Cache")
-            else: # Cache miss
+            else:  # Cache miss
                 with tf.Session() as sess:
                     oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                     "data/perovskite_oxi_table.json")
@@ -186,6 +196,7 @@ def perovskite_query():
                                                   unmix_entries=decompose_entries)
                     else:
                         decomp, ehull = get_ehull(structure_type, tot_e, species)
+
                     response = {"form_e": form_e, "decomp": decomp, "ehull": ehull}
                     if len(ResponseCache) > MAX_CACHE:
                         ResponseCache.popitem(last=False)

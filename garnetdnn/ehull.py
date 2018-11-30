@@ -32,15 +32,19 @@ SITE_INFO = {'garnet': {'c': {"num_atoms": 3, "max_ordering": 20, "cn": "VIII"},
                             'b': {"num_atoms": 2, "max_ordering": 10, 'cn': "VI"}}}
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data")
-GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet/garnet_calc_entries.json")
+GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR,
+                                        "garnet/garnet_calc_entries.json")
 GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
-PEROVSKITE_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "perovskite/perov_calc_entries.json")
+PEROVSKITE_CALC_ENTRIES_PATH = os.path.join(DATA_DIR,
+                                            "perovskite/perov_calc_entries.json")
 PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
 CALC_ENTRIES = {'garnet': GARNET_CALC_ENTRIES,
                 'perovskite': PEROVSKITE_CALC_ENTRIES}
-GARNET_EHULL_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet/garnet_ehull_entries.json")
+GARNET_EHULL_ENTRIES_PATH = os.path.join(DATA_DIR,
+                                         "garnet/garnet_ehull_entries.json")
 GARNET_EHULL_ENTRIES = loadfn(GARNET_EHULL_ENTRIES_PATH)
-PEROVSKITE_EHULL_ENTRIES_PATH = os.path.join(DATA_DIR, "perovskite/perov_ehull_entries.json")
+PEROVSKITE_EHULL_ENTRIES_PATH = os.path.join(DATA_DIR,
+                                             "perovskite/perov_ehull_entries.json")
 PEROVSKITE_EHULL_ENTRIES = loadfn(PEROVSKITE_EHULL_ENTRIES_PATH)
 EHULL_ENTRIES = {'garnet': GARNET_EHULL_ENTRIES,
                  'perovskite': PEROVSKITE_EHULL_ENTRIES}
@@ -52,6 +56,7 @@ def get_decomposed_entries(structure_type, species, oxides_table_path):
     """
     Get decomposed entries for mix types
     Args:
+        structure_type(str): "garnet" or "perovskite"
         species (dict): species in dictionary.
         structure_type(str): garnet or perovskite
         oxides_table_path(str): path to the oxides table
@@ -107,6 +112,7 @@ def prepare_entry(structure_type, tot_e, species):
     Prepare entries from total energy and species.
 
     Args:
+        structure_type(str): "garnet" or "perovskite"
         tot_e (float): total energy in eV/f.u.
         species (dict): species in dictionary.
 
@@ -144,6 +150,7 @@ def filter_entries(structure_type, all_entries, species, return_removed=False):
     of give structures.
 
     Args:
+        structure_type(str): "garnet" or "perovskite"
          all_entries (list): entries in queried chemical space obtained from Materials Project
          composition (Composition): composition of queried entry
          return_removed (bool): If True, return the filtered entries
@@ -188,6 +195,7 @@ def get_ehull(structure_type, tot_e, species,
     can be either given by the species dict(for garnet only) or a formula.
 
     Args:
+        structure_type(str): "garnet" or "perovskite"
         tot_e (float): total energy, the unit is in accordance with given
             composition.
         species (dict): species in dictionary.
