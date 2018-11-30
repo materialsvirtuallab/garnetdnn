@@ -1,12 +1,9 @@
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
 import re
 
 import os
 
 from flask import render_template, make_response, request, Flask
-from flask.ext.cache import Cache
+# from flask.ext.cache import Cache
 import tensorflow as tf
 from garnetdnn.ehull import get_decomposed_entries, get_ehull
 from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote
@@ -15,8 +12,6 @@ import time
 from collections import OrderedDict
 
 app = Flask(__name__)
-cache = Cache(config={'CACHE_TYPE': 'simple'})
-cache.init_app(app)
 MAX_CACHE = 500
 
 
@@ -24,7 +19,6 @@ def html_formula(f):
     return re.sub(r"([\d.]+)", r"<sub>\1</sub>", f)
 
 
-@cache.cached(timeout=50)
 @app.route('/', methods=['GET'])
 def index():
     return make_response(render_template('index.html'))
