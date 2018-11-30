@@ -51,10 +51,10 @@ PROTO = None
 def get_decomposed_entries(structure_type, species, oxides_table_path):
     """
     Get decomposed entries for mix types
-    Args:one
+    Args:
         species (dict): species in dictionary.
         structure_type(str): garnet or perovskite
-
+        oxides_table_path(str): path to the oxides table
     Returns:
         decompose entries(list):
             list of entries prepared from unmix
@@ -208,8 +208,9 @@ def get_ehull(structure_type, tot_e, species,
             all_entries = m.get_entries_in_chemsys([el.name for el in composition],
                                                    inc_structure=True)
         else:
+            comp_set = set(composition)
             all_entries = [e for e in EHULL_ENTRIES[structure_type]
-                           if set(e.composition).issubset(set(composition))]
+                           if set(e.composition).issubset(comp_set)]
     all_entries = filter_entries(structure_type, all_entries, species)
     all_calc_entries = [e for e in CALC_ENTRIES[structure_type]
                         if set(e.composition).issubset(set(composition)) \

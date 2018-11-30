@@ -2,24 +2,28 @@ import re
 
 import os
 from flask import render_template, make_response, request, Flask
+from flask.ext.cache import Cache
 import tensorflow as tf
 from garnetdnn.ehull import get_decomposed_entries, get_ehull
 from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote
 from garnetdnn.util import load_model_and_scaler, spe2form, html_formula, parse_composition
 import time
+from collections import OrderedDict
 
 app = Flask(__name__)
-
+cache = Cache(config={'CACHE_TYPE': 'simple'})
+cache.init_app(app)
+MAX_CACHE = 500
 
 def html_formula(f):
     return re.sub(r"([\d.]+)", r"<sub>\1</sub>", f)
 
-
+@cache.cached(timeout=50)
 @app.route('/', methods=['GET'])
 def index():
     return make_response(render_template('index.html'))
 
-
+ResponseCache = OrderedDict()
 @app.route('/query', methods=['GET'])
 def query():
     try:
@@ -55,45 +59,57 @@ def query():
         species = {"a": a_composition, "d": d_composition, "c": c_composition}
 
         if abs(charge) < 0.1:
-            with tf.Session() as sess:
+            formula = spe2form(structure_type, species)
+            if ResponseCache.get(formula):
+                response = ResponseCache[formula]
+                form_e = response['form_e']
+                decomp = response['decomp']
+                ehull = response['ehull']
+                # print("Read from Cache")
+            else: # Cache miss
+                with tf.Session() as sess:
 
-                oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                "data/garnet_oxi_table.json")
-                model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
-                    else load_model_and_scaler(structure_type, "unmix")
-                inputs = get_descriptor(structure_type, species)
+                    oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                    "data/garnet_oxi_table.json")
+                    model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
+                        else load_model_and_scaler(structure_type, "unmix")
+                    inputs = get_descriptor(structure_type, species)
 
-                with graph.as_default():
-                    form_e = get_form_e(inputs, model, scaler) * 20
+                    with graph.as_default():
+                        form_e = get_form_e(inputs, model, scaler) * 20
 
-                tot_e = get_tote(structure_type, form_e, species,
-                                 oxides_table_path=oxide_table_path)
+                    tot_e = get_tote(structure_type, form_e, species,
+                                     oxides_table_path=oxide_table_path)
 
-                if mix_site:
-                    decompose_entries = get_decomposed_entries(structure_type,
-                                                               species,
-                                                               oxide_table_path)
-                    decomp, ehull = get_ehull(structure_type, tot_e, species,
-                                              unmix_entries=decompose_entries)
-                else:
-                    decomp, ehull = get_ehull(structure_type, tot_e, species)
+                    if mix_site:
+                        decompose_entries = get_decomposed_entries(structure_type,
+                                                                   species,
+                                                                   oxide_table_path)
+                        decomp, ehull = get_ehull(structure_type, tot_e, species,
+                                                  unmix_entries=decompose_entries)
+                    else:
+                        decomp, ehull = get_ehull(structure_type, tot_e, species)
 
-                formula = spe2form(structure_type, species)
-                message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e,
-                           "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
-                           (ehull * 1000)]
-                if ehull > 0:
-                    reaction = []
-                    for k, v in decomp.items():
-                        comp = k.composition
-                        comp, f = comp.get_reduced_composition_and_factor()
-                        reaction.append(
-                            '%.3f <a href="https://www.materialsproject.org/materials/%s">%s</a>'
-                            % (v * f / comp.num_atoms * 20, k.entry_id,
-                               html_formula(comp.reduced_formula)))
-                    message.append("Decomposition: " + " + ".join(reaction))
+                response = {"form_e": form_e, "decomp": decomp, "ehull": ehull}
+                if len(ResponseCache) > MAX_CACHE:
+                    ResponseCache.popitem(last=False)
+                ResponseCache.update({formula: response})
+            message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % form_e,
+                       "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
+                       (ehull * 1000)]
 
-                message = "<br>".join(message)
+            if ehull > 0:
+                reaction = []
+                for k, v in decomp.items():
+                    comp = k.composition
+                    comp, f = comp.get_reduced_composition_and_factor()
+                    reaction.append(
+                        '%.3f <a href="https://www.materialsproject.org/materials/%s">%s</a>'
+                        % (v * f / comp.num_atoms * 20, k.entry_id,
+                           html_formula(comp.reduced_formula)))
+                message.append("Decomposition: " + " + ".join(reaction))
+
+            message = "<br>".join(message)
 
         else:
             message = "Not charge neutral! Total charge = %.0f" % charge
@@ -141,43 +157,55 @@ def perovskite_query():
         species = {"a": a_composition, "b": b_composition}
 
         if abs(charge) < 0.1:
-            with tf.Session() as sess:
-                oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                "data/perovskite_oxi_table.json")
-                model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
-                    else load_model_and_scaler(structure_type, "unmix")
-                inputs = get_descriptor(structure_type, species, cn_specific=False)
-                with graph.as_default():
-                    form_e = get_form_e(inputs, model, scaler) * 10
-                # form_e predicted from model is always in /atom
-                # the get_tote func always returns the tote with in /standard fu
-                # which is A2B2O6, 10 atoms
-                tot_e = get_tote(structure_type, form_e, species,
-                                 oxides_table_path=oxide_table_path)
-                if mix_site:
-                    decompose_entries = get_decomposed_entries(structure_type,
-                                                               species,
-                                                               oxide_table_path)
-                    decomp, ehull = get_ehull(structure_type, tot_e, species,
-                                              unmix_entries=decompose_entries)
-                else:
-                    decomp, ehull = get_ehull(structure_type, tot_e, species)
-                formula = spe2form(structure_type, species)
-                message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % (form_e),
-                           "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
-                           (ehull * 1000)]
-                if ehull > 0:
-                    reaction = []
-                    for k, v in decomp.items():
-                        comp = k.composition
-                        rcomp, f = comp.get_reduced_composition_and_factor()
-                        reaction.append(
-                            '%.3f <a href="https://www.materialsproject.org/materials/%s">%s</a>'
-                            % (v * f / comp.num_atoms * 10, k.entry_id,
-                               html_formula(comp.reduced_formula)))
-                    message.append("Decomposition: " + " + ".join(reaction))
+            formula = spe2form(structure_type, species)
+            if ResponseCache.get(formula):
+                response = ResponseCache[formula]
+                form_e = response['form_e']
+                decomp = response['decomp']
+                ehull = response['ehull']
+                print("Read from Cache")
+            else: # Cache miss
+                with tf.Session() as sess:
+                    oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                    "data/perovskite_oxi_table.json")
+                    model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
+                        else load_model_and_scaler(structure_type, "unmix")
+                    inputs = get_descriptor(structure_type, species, cn_specific=False)
+                    with graph.as_default():
+                        form_e = get_form_e(inputs, model, scaler) * 10
+                    # form_e predicted from model is always in /atom
+                    # the get_tote func always returns the tote with in /standard fu
+                    # which is A2B2O6, 10 atoms
+                    tot_e = get_tote(structure_type, form_e, species,
+                                     oxides_table_path=oxide_table_path)
+                    if mix_site:
+                        decompose_entries = get_decomposed_entries(structure_type,
+                                                                   species,
+                                                                   oxide_table_path)
+                        decomp, ehull = get_ehull(structure_type, tot_e, species,
+                                                  unmix_entries=decompose_entries)
+                    else:
+                        decomp, ehull = get_ehull(structure_type, tot_e, species)
+                    response = {"form_e": form_e, "decomp": decomp, "ehull": ehull}
+                    if len(ResponseCache) > MAX_CACHE:
+                        ResponseCache.popitem(last=False)
+                    ResponseCache.update({formula: response})
 
-                message = "<br>".join(message)
+            message = ["<i>E<sub>f</sub></i> = %.3f eV/fu" % (form_e),
+                       "<i>E<sub>hull</sub></i> = %.0f meV/atom" %
+                       (ehull * 1000)]
+            if ehull > 0:
+                reaction = []
+                for k, v in decomp.items():
+                    comp = k.composition
+                    rcomp, f = comp.get_reduced_composition_and_factor()
+                    reaction.append(
+                        '%.3f <a href="https://www.materialsproject.org/materials/%s">%s</a>'
+                        % (v * f / comp.num_atoms * 10, k.entry_id,
+                           html_formula(comp.reduced_formula)))
+                message.append("Decomposition: " + " + ".join(reaction))
+
+            message = "<br>".join(message)
         else:
             message = "Not charge neutral! Total charge = %.0f" % charge
     except Exception as ex:
