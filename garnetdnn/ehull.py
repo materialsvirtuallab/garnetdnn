@@ -40,7 +40,10 @@ CALC_ENTRIES = {'garnet': GARNET_CALC_ENTRIES,
                 'perovskite': PEROVSKITE_CALC_ENTRIES}
 GARNET_EHULL_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet/garnet_ehull_entries.json")
 GARNET_EHULL_ENTRIES = loadfn(GARNET_EHULL_ENTRIES_PATH)
-EHULL_ENTRIES = {'garnet': GARNET_EHULL_ENTRIES}
+PEROVSKITE_EHULL_ENTRIES_PATH = os.path.join(DATA_DIR, "perovskite/perov_ehull_entries.json")
+PEROVSKITE_EHULL_ENTRIES = loadfn(PEROVSKITE_EHULL_ENTRIES_PATH)
+EHULL_ENTRIES = {'garnet': GARNET_EHULL_ENTRIES,
+                 'perovskite': PEROVSKITE_EHULL_ENTRIES}
 MATCHER = None
 PROTO = None
 
@@ -127,7 +130,7 @@ def prepare_entry(structure_type, tot_e, species):
     ce = ComputedEntry(composition=composition, energy=0, parameters=parameters)
     ce.uncorrected_energy = tot_e
     compat = MaterialsProjectCompatibility()
-    ce = compat.process_entry(ce)
+    ce = compat.process_entry(ce) # Correction added
 
     return ce
 
@@ -206,21 +209,18 @@ def get_ehull(structure_type, tot_e, species,
                                                    inc_structure=True)
         else:
             all_entries = [e for e in EHULL_ENTRIES[structure_type]
-                           if set(e.composition).issubset(set(composition)) \
-                           and e.name != composition.reduced_formula]
-
+                           if set(e.composition).issubset(set(composition))]
+    print(len(all_entries))
     all_entries = filter_entries(structure_type, all_entries, species)
-
+    print(len(all_entries))
     all_calc_entries = [e for e in CALC_ENTRIES[structure_type]
                         if set(e.composition).issubset(set(composition)) \
                         and e.name != composition.reduced_formula]
-
+    compat = MaterialsProjectCompatibility()
+    all_calc_entries = compat.process_entries(all_calc_entries)
     if all_calc_entries:
         all_entries = all_entries + all_calc_entries
-
-    #     compat = MaterialsProjectCompatibility()
-    #     all_entries = compat.process_entries(all_entries)
-
+    print(len(all_entries))
     if not all_entries:
         raise ValueError("Incomplete")
     entry = prepare_entry(structure_type, tot_e, species)
