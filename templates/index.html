@@ -1,6 +1,6 @@
 {% extends "layout.html" %}
 
-{% block title %}{{db_name}} Query{% endblock %}
+{% block title %}Garnet Neural Network{% endblock %}
 
 {% block top_javascript %}
 
@@ -24,9 +24,6 @@ $(function() {
         ]
     } );
   });
-
-
-
 </script>
 {% endblock %}
 
@@ -43,12 +40,11 @@ $(function() {
 
 
 {% block content %}
-<img id="header-img" src="{{ url_for('static', filename='images/garnetnn.png') }}"/>
+<img id="header-img" src="{{ url_for('static', filename='images/dnn.jpg') }}"/>
 <h1>Garnet Neural Network</h1>
 
 <p class="help-p">This application uses a deep neural network to predict the stability of garnet crystals, as described
-    in Weike Ye, Chi Chen, Zhenbin Wang, Iek-Heng Chu & Shyue Ping Ong , <i>Deep Neural Networks for Accurate
-        Predictions of Crystal Stability</i>, Submitted.</p>
+    in Ye, W.; Chen, C.; Wang, Z.; Chu, I.-H.; Ong, S. P. <i>Deep neural networks for accurate predictions of crystal stability.</i> <b>Nat. Commun.</b> 2018, 9 (1), 3800 DOI: <a href="http://dx.doi.org/10.1038/s41467-018-06322-x">10.1038/s41467-018-06322-x</a>.</p>
 <p class="help-p"><b>Instructions</b></p>
 <p class="help-p">Enter species in the C (24c), A (16a) and D (24d) sites of the prototypical C<sub>3</sub>A<sub>2</sub>D<sub>3</sub>O<sub>12</sub>
     garnet crystal.</p>
