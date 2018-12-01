@@ -69,7 +69,6 @@ m = MPRester("xNebFpxTfLhTnnIH")
 
 MODELS = {}
 
-
 def load_model_and_scaler(structure_type, model_type):
     """
     Load model and scaler for Ef prediction.
