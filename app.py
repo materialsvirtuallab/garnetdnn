@@ -1,13 +1,10 @@
 import re
 
-import os
-
 from flask import render_template, make_response, request, Flask
 import tensorflow as tf
 from garnetdnn.ehull import get_decomposed_entries, get_ehull
 from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote
 from garnetdnn.util import load_model_and_scaler, spe2form, html_formula, parse_composition
-import time
 from collections import OrderedDict
 
 app = Flask(__name__)
@@ -66,8 +63,6 @@ def query():
                 ehull = response['ehull']
             else:  # Cache miss
                 with tf.Session() as sess:
-                    # oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                    #                                 "data/garnet_oxi_table.json")
                     model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
                         else load_model_and_scaler(structure_type, "unmix")
                     inputs = get_descriptor(structure_type, species)
@@ -156,8 +151,6 @@ def perovskite_query():
 
             else:  # Cache miss
                 with tf.Session() as sess:
-                    # oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                    #                                 "data/perovskite_oxi_table.json")
                     model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
                         else load_model_and_scaler(structure_type, "unmix")
                     inputs = get_descriptor(structure_type, species, cn_specific=False)

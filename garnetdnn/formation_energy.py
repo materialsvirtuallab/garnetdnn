@@ -6,8 +6,6 @@ from monty.serialization import loadfn
 from pymatgen import Composition
 from pymatgen.core.periodic_table import get_el_sp
 
-from garnetdnn.util import spe2form
-from pymatgen import MPRester
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data")
 OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxides_entries_dict.json")
@@ -21,9 +19,6 @@ SITE_INFO = {'garnet': {'c': {"num_atoms": 3, "max_ordering": 20, "cn": "VIII"},
                         'd': {"num_atoms": 3, "max_ordering": 18, "cn": "IV"}},
              'perovskite': {'a': {"num_atoms": 2, "max_ordering": 10, 'cn': "XII"},
                             'b': {"num_atoms": 2, "max_ordering": 10, 'cn': "VI"}}}
-
-m = MPRester("VIqD4QUxH6wNpyc5")
-
 
 def binary_encode(config, tot_configs):
     """
@@ -51,6 +46,7 @@ def _raw_input(input_spe, cn_specific, site_info):
         descriptors = [(get_el_sp(spe).ionic_radius, get_el_sp(spe).X) \
                        for spe, site in input_spe]
     return list(sum(descriptors, ()))
+
 
 def get_descriptor(structure_type, species, cn_specific=True,
                    unmix_expansion=None, config=None):
@@ -159,8 +155,7 @@ def get_form_e(descriptors, model, scaler, return_full=False):
 
 
 def get_tote(structure_type, form_e, species, debug=False):
-    # formula = spe2form(structure_type, species)
-    # composition = Composition(formula)
+
     spe_dict = Counter({})
     for site in SITE_INFO[structure_type]:
         spe_dict += Counter({spe.__str__(): round(SITE_INFO[structure_type][site]['num_atoms'] \
@@ -177,7 +172,7 @@ def get_tote(structure_type, form_e, species, debug=False):
         if BINARY_OXDIES_ENTRIES.get(el.__str__()):
             stable_ox_entry = BINARY_OXDIES_ENTRIES[el.__str__()]
         else:
-            raise ValueError("No binary oxide entry for %s"%el.__str__())
+            raise ValueError("No binary oxide entry for %s" % el.__str__())
         min_e = stable_ox_entry.uncorrected_energy
         amt_ox = stable_ox_entry.composition[el.name]
         tote += (amt / amt_ox) * min_e

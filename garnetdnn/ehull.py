@@ -1,5 +1,4 @@
 import os
-from collections import Counter
 from pymatgen import Structure
 from monty.serialization import loadfn
 from pymatgen import MPRester
@@ -15,7 +14,6 @@ from pymatgen.io.vasp.sets import _load_yaml_config
 
 from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote
 from garnetdnn.util import load_model_and_scaler, spe2form
-import time
 import itertools
 
 CONFIG = _load_yaml_config("MPRelaxSet")
@@ -126,7 +124,7 @@ def get_decomposed_entries(structure_type, species):
             decompose_entries.extend(calc_entries)
 
         else:
-            cn_specific = True if structure_type=='garnet' else False
+            cn_specific = True if structure_type == 'garnet' else False
             descriptors = get_descriptor(structure_type, unmix_species,
                                          cn_specific=cn_specific)
             with graph.as_default():
