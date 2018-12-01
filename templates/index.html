@@ -15,7 +15,7 @@
 
 <script type="text/javascript">
 $(function() {
-    $('input[type=submit]').button();
+    $('input[type=supmit]').button();
     $("#select-collection" ).selectmenu();
     $('#results-table').DataTable({
         dom: 'Bfrtip',
@@ -49,9 +49,19 @@ $(function() {
 <p class="help-p">This application uses a deep neural network to predict the stability of garnet crystals, as described
     in Ye, W.; Chen, C.; Wang, Z.; Chu, I.-H.; Ong, S. P. <i>Deep neural networks for accurate predictions of crystal stability.</i> <b>Nat. Commun.</b> 2018, 9 (1), 3800 DOI: <a href="http://dx.doi.org/10.1038/s41467-018-06322-x">10.1038/s41467-018-06322-x</a>.</p>
 <p class="help-p"><b>Instructions</b></p>
-<p class="help-p">Enter species in the C (24c), A (16a) and D (24d) sites of the prototypical C<sub>3</sub>A<sub>2</sub>D<sub>3</sub>O<sub>12</sub>
+<p class="help-p">Enter species in the C (24c), A (16a) and D (24d) sites of the prototypical C<sup>3</sup>A<sup>2</sup>D<sup>3</sup>O<sup>12</sup>
     garnet crystal.</p>
 <ul>
+    <li>Species allowed on C site: <br />
+        Bi<sup>3+</sup>, Hf<sup>4+</sup>, Zr<sup>4+</sup>, La<sup>3+</sup>, Pr<sup>3+</sup>, Nd<sup>3+</sup>, Sm<sup>3+</sup>, Eu<sup>3+</sup>, Gd <sup>3+</sup>,
+        Tb<sup>3+</sup>, Dy<sup>3+</sup>, Ho<sup>3+</sup>, Er<sup>3+</sup>, Tm<sup>3+</sup>, Yb<sup>3+</sup>, Lu<sup>3+</sup>, Y <sup>3+</sup> , Cd<sup>2+</sup>,
+        Zn<sup>2+</sup>, Ba<sup>2+</sup>, Sr<sup>2+</sup>, Ca<sup>2+</sup>, Mg<sup>2+</sup>, Na<sup>+ </sup> </li>
+    <li>Species allowed on A site: <br />
+        Rh<sup>3+</sup>, Ru<sup>4+</sup>, Cr<sup>3+</sup>, Sb<sup>5+</sup>, Ta<sup>5+</sup>, Nb<sup>5+</sup>, Sn<sup>4+</sup>, Ge<sup>4+</sup>, Hf<sup>4+</sup>,
+        Zr<sup>4+</sup>, Ti<sup>4+</sup>, In<sup>3+</sup>, Ga<sup>3+</sup>, Al<sup>3+</sup>, Lu<sup>3+</sup>, Yb<sup>3+</sup>, Tm<sup>3+</sup>, Er<sup>3+</sup>,
+        Ho<sup>3+</sup>, Dy<sup>3+</sup>, Y <sup>3+</sup> , Sc<sup>3+</sup>, Zn<sup>2+</sup>, Mg<sup>2+</sup>, Li<sup> +</sup> </li>
+   <li>Species allowed on D site: <br />
+       As<sup>5+</sup>, P5<sup>+ </sup>, Sn<sup>4+</sup>, Ge<sup>4+</sup>, Si<sup>4+</sup>, Ti<sup>4+</sup>, Ga<sup>3+</sup>, Al<sup>3+</sup>, Li<sup>+</sup></li>
     <li>"Ca2+" means only one type of species (Ca<sup>2+</sup>) is present in the site.</li>
     <li>"Ca2+:2 Mg2+:1" means Ca<sup>2+</sup> and Mg<sup>2+</sup> are present in the site in the ratio of 2:1.</li>
 </ul>
@@ -66,7 +76,7 @@ $(function() {
         <label>D: </label><input type="text" name="d_string" placeholder="E.g., Si4+" value="{{d_string}}" size="20">
     </p>
     <p class="query">
-        <input type="submit" name="submit" value="Compute">
+        <input type="supmit" name="supmit" value="Compute">
     </p>
 </form>
 
@@ -77,9 +87,9 @@ $(function() {
 <p class="help-p">
     Definitions:
 <ul>
-    <li><i>E<sub>f</sub></i>: Formation energy from binary oxides of same oxidation state</li>
-    <li><i>E<sub>hull</sub></i>: Energy above convex hull</li>
-    <li><i>Formula unit (fu) </sub></i>: {{ formula | safe }}</li>
+    <li><i>E<sup>f</sup></i>: Formation energy from binary oxides of same oxidation state</li>
+    <li><i>E<sup>hull</sup></i>: Energy above convex hull</li>
+    <li><i>Formula unit (fu) </sup></i>: {{ formula | safe }}</li>
 </ul>
 
 {% endif %}

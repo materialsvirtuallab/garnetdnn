@@ -3,7 +3,6 @@ import re
 import os
 
 from flask import render_template, make_response, request, Flask
-# from flask.ext.cache import Cache
 import tensorflow as tf
 from garnetdnn.ehull import get_decomposed_entries, get_ehull
 from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote

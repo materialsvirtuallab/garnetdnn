@@ -77,6 +77,7 @@ def get_entries_in_chemsy(entries_dict, elements):
             entries.extend(entries_dict[key])
     return entries
 
+
 def get_decomposed_entries(structure_type, species, oxides_table_path):
     """
     Get decomposed entries for mix types
@@ -236,7 +237,6 @@ def get_ehull(structure_type, tot_e, species,
     composition = Composition(formula)
     elements = [i.name for i in composition.elements]
     unmix_entries = [] if unmix_entries is None else unmix_entries
-    t0 = time.time()
     if not all_entries:
         if from_mp:
             all_entries = m.get_entries_in_chemsys([el.name for el in composition],
@@ -245,22 +245,17 @@ def get_ehull(structure_type, tot_e, species,
             entries_dict = EHULL_ENTRIES[structure_type]
             all_entries = get_entries_in_chemsy(entries_dict, elements)
 
-    print("t1: %s" %(time.time() - t0))
     all_entries = filter_entries(structure_type, all_entries, species)
-    print("t2: %s" % (time.time() - t0))
     calc_entries_dict = CALC_ENTRIES[structure_type]
     all_calc_entries = get_entries_in_chemsy(calc_entries_dict, elements)
-    print("t3: %s" %(time.time() - t0))
     compat = MaterialsProjectCompatibility()
     all_calc_entries = compat.process_entries(all_calc_entries)
-    print("t4: %s" % (time.time() - t0))
     if all_calc_entries:
         all_entries = all_entries + all_calc_entries
 
     if not all_entries:
         raise ValueError("Incomplete")
     entry = prepare_entry(structure_type, tot_e, species)
-    print("t5: %s" % (time.time() - t0))
     if debug:
         return entry, all_entries
 
