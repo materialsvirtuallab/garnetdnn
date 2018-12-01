@@ -15,6 +15,8 @@ from pymatgen.io.vasp.sets import _load_yaml_config
 
 from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote
 from garnetdnn.util import load_model_and_scaler, spe2form
+import time
+import itertools
 
 CONFIG = _load_yaml_config("MPRelaxSet")
 LDAUU = CONFIG["INCAR"]['LDAUU']['O']
@@ -31,24 +33,58 @@ SITE_INFO = {'garnet': {'c': {"num_atoms": 3, "max_ordering": 20, "cn": "VIII"},
                             'b': {"num_atoms": 2, "max_ordering": 10, 'cn': "VI"}}}
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data")
-GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "garnet/garnet_calc_entries.json")
+GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR,
+                                        "garnet/garnet_calc_entries.json")
 GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
-PEROVSKITE_CALC_ENTRIES_PATH = os.path.join(DATA_DIR, "perovskite/perov_calc_entries.json")
+PEROVSKITE_CALC_ENTRIES_PATH = os.path.join(DATA_DIR,
+                                            "perovskite/perov_calc_entries.json")
 PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
 CALC_ENTRIES = {'garnet': GARNET_CALC_ENTRIES,
                 'perovskite': PEROVSKITE_CALC_ENTRIES}
-
+GARNET_EHULL_ENTRIES_PATH = os.path.join(DATA_DIR,
+                                         "garnet/garnet_ehull_entries_dict.json")
+GARNET_EHULL_ENTRIES = loadfn(GARNET_EHULL_ENTRIES_PATH)
+PEROVSKITE_EHULL_ENTRIES_PATH = os.path.join(DATA_DIR,
+                                             "perovskite/perov_ehull_entries_dict.json")
+PEROVSKITE_EHULL_ENTRIES = loadfn(PEROVSKITE_EHULL_ENTRIES_PATH)
+EHULL_ENTRIES = {'garnet': GARNET_EHULL_ENTRIES,
+                 'perovskite': PEROVSKITE_EHULL_ENTRIES}
 MATCHER = None
 PROTO = None
 
 
+def get_entries_in_chemsy(entries_dict, elements):
+    """
+    Args:
+        entries_dict(dict): hashtable of entries pool
+                    The key of the dict should be
+                    "-".join(sorted(elements))
+        elements(list): list of elements included in
+                    the chemical space
+                    eg. ['Ca', 'O']
+    Returns:
+        entries(list):
+                    list of entries in the chemical
+                    space from provided entries
+
+    """
+    entries = []
+    for i in range(len(elements)):
+        for els in itertools.combinations(elements, i + 1):
+            key = '-'.join(sorted(els))
+            if key not in entries_dict:
+                continue
+            entries.extend(entries_dict[key])
+    return entries
+
 def get_decomposed_entries(structure_type, species, oxides_table_path):
     """
     Get decomposed entries for mix types
-    Args:one
+    Args:
+        structure_type(str): "garnet" or "perovskite"
         species (dict): species in dictionary.
         structure_type(str): garnet or perovskite
-
+        oxides_table_path(str): path to the oxides table
     Returns:
         decompose entries(list):
             list of entries prepared from unmix
@@ -101,6 +137,7 @@ def prepare_entry(structure_type, tot_e, species):
     Prepare entries from total energy and species.
 
     Args:
+        structure_type(str): "garnet" or "perovskite"
         tot_e (float): total energy in eV/f.u.
         species (dict): species in dictionary.
 
@@ -124,7 +161,7 @@ def prepare_entry(structure_type, tot_e, species):
     ce = ComputedEntry(composition=composition, energy=0, parameters=parameters)
     ce.uncorrected_energy = tot_e
     compat = MaterialsProjectCompatibility()
-    ce = compat.process_entry(ce)
+    ce = compat.process_entry(ce)  # Correction added
 
     return ce
 
@@ -138,6 +175,7 @@ def filter_entries(structure_type, all_entries, species, return_removed=False):
     of give structures.
 
     Args:
+        structure_type(str): "garnet" or "perovskite"
          all_entries (list): entries in queried chemical space obtained from Materials Project
          composition (Composition): composition of queried entry
          return_removed (bool): If True, return the filtered entries
@@ -166,53 +204,63 @@ def filter_entries(structure_type, all_entries, species, return_removed=False):
     if not return_removed:
         return [e for e in all_entries \
                 if e.name != composition.reduced_formula \
-                    and not MATCHER.fit(e.structure, P)]
+                and not MATCHER.fit(e.structure, P)]
     else:
         removed = [e for e in all_entries \
                    if e.name == composition.reduced_formula \
-                    and MATCHER.fit(e.structure, P)]
+                   and MATCHER.fit(e.structure, P)]
         return removed, [e for e in all_entries if e not in removed]
 
 
 def get_ehull(structure_type, tot_e, species,
               unmix_entries=None, all_entries=None,
-              debug=False):
+              debug=False, from_mp=False):
     """
     Get Ehull predicted under given total energy and species. The composition
     can be either given by the species dict(for garnet only) or a formula.
 
     Args:
+        structure_type(str): "garnet" or "perovskite"
         tot_e (float): total energy, the unit is in accordance with given
             composition.
         species (dict): species in dictionary.
         unmix_entries (list): additional list of unmix entries.
+        all_entries(list): Manually supply the entries whithin the chemical space
+        debug(bool): Whether or not to run it in debug mode. (For test only)
+        from_mp(bool): Whether or not to query entries from MP (would take long)
 
     Returns:
         ehull (float): energy above hull.
     """
     formula = spe2form(structure_type, species)
     composition = Composition(formula)
+    elements = [i.name for i in composition.elements]
     unmix_entries = [] if unmix_entries is None else unmix_entries
-
+    t0 = time.time()
     if not all_entries:
-        all_entries = m.get_entries_in_chemsys([el.name for el in composition],
-                                               inc_structure=True)
+        if from_mp:
+            all_entries = m.get_entries_in_chemsys([el.name for el in composition],
+                                                   inc_structure=True)
+        else:
+            entries_dict = EHULL_ENTRIES[structure_type]
+            all_entries = get_entries_in_chemsy(entries_dict, elements)
+
+    print("t1: %s" %(time.time() - t0))
     all_entries = filter_entries(structure_type, all_entries, species)
-
-    all_calc_entries = [e for e in CALC_ENTRIES[structure_type]
-                        if set(e.composition).issubset(set(composition)) \
-                        and e.name != composition.reduced_formula]
-
+    print("t2: %s" % (time.time() - t0))
+    calc_entries_dict = CALC_ENTRIES[structure_type]
+    all_calc_entries = get_entries_in_chemsy(calc_entries_dict, elements)
+    print("t3: %s" %(time.time() - t0))
+    compat = MaterialsProjectCompatibility()
+    all_calc_entries = compat.process_entries(all_calc_entries)
+    print("t4: %s" % (time.time() - t0))
     if all_calc_entries:
         all_entries = all_entries + all_calc_entries
-
-    compat = MaterialsProjectCompatibility()
-    all_entries = compat.process_entries(all_entries)
 
     if not all_entries:
         raise ValueError("Incomplete")
     entry = prepare_entry(structure_type, tot_e, species)
-
+    print("t5: %s" % (time.time() - t0))
     if debug:
         return entry, all_entries
 

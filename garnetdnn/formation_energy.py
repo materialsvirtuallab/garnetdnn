@@ -52,7 +52,8 @@ def _raw_input(input_spe, cn_specific, site_info):
                        for spe, site in input_spe]
     return list(sum(descriptors, ()))
 
-def get_descriptor(structure_type, species, cn_specific=True, unmix_expansion=None, config=None):
+def get_descriptor(structure_type, species, cn_specific=True,
+                   unmix_expansion=None, config=None):
     """
     Prepare the inputs for model prediction.
     i.e. extract the
