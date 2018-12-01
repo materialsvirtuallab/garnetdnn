@@ -1,6 +1,5 @@
 import os
-from collections import Counter
-
+from pymatgen import Structure
 from monty.serialization import loadfn
 from pymatgen import MPRester
 from pymatgen.analysis.phase_diagram import PhaseDiagram
@@ -15,7 +14,6 @@ from pymatgen.io.vasp.sets import _load_yaml_config
 
 from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote
 from garnetdnn.util import load_model_and_scaler, spe2form
-import time
 import itertools
 
 CONFIG = _load_yaml_config("MPRelaxSet")
@@ -34,10 +32,10 @@ SITE_INFO = {'garnet': {'c': {"num_atoms": 3, "max_ordering": 20, "cn": "VIII"},
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data")
 GARNET_CALC_ENTRIES_PATH = os.path.join(DATA_DIR,
-                                        "garnet/garnet_calc_entries.json")
+                                        "garnet/garnet_calc_entries_dict.json")
 GARNET_CALC_ENTRIES = loadfn(GARNET_CALC_ENTRIES_PATH)
 PEROVSKITE_CALC_ENTRIES_PATH = os.path.join(DATA_DIR,
-                                            "perovskite/perov_calc_entries.json")
+                                            "perovskite/perov_calc_entries_dict.json")
 PEROVSKITE_CALC_ENTRIES = loadfn(PEROVSKITE_CALC_ENTRIES_PATH)
 CALC_ENTRIES = {'garnet': GARNET_CALC_ENTRIES,
                 'perovskite': PEROVSKITE_CALC_ENTRIES}
@@ -78,14 +76,14 @@ def get_entries_in_chemsy(entries_dict, elements):
     return entries
 
 
-def get_decomposed_entries(structure_type, species, oxides_table_path):
+def get_decomposed_entries(structure_type, species):
     """
     Get decomposed entries for mix types
     Args:
         structure_type(str): "garnet" or "perovskite"
         species (dict): species in dictionary.
         structure_type(str): garnet or perovskite
-        oxides_table_path(str): path to the oxides table
+
     Returns:
         decompose entries(list):
             list of entries prepared from unmix
@@ -113,18 +111,26 @@ def get_decomposed_entries(structure_type, species, oxides_table_path):
             continue
 
         formula = spe2form(structure_type, unmix_species)
-        calc_entries = [entry for entry in CALC_ENTRIES[structure_type] if \
-                        entry.name == Composition(formula).reduced_formula]
+        composition = Composition(formula)
+        elements = [el.name for el in composition]
+        chemsy = '-'.join(sorted(elements))
+        calc_entries = []
+        if CALC_ENTRIES[structure_type].get(chemsy):
+            calc_entries = [entry for entry in CALC_ENTRIES[structure_type][chemsy] if \
+                            entry.name == Composition(formula).reduced_formula]
+        else:
+            pass
         if calc_entries:
-            for entry in calc_entries:
-                decompose_entries.append(entry)
+            decompose_entries.extend(calc_entries)
 
         else:
-            descriptors = get_descriptor(structure_type, unmix_species)
+            cn_specific = True if structure_type == 'garnet' else False
+            descriptors = get_descriptor(structure_type, unmix_species,
+                                         cn_specific=cn_specific)
             with graph.as_default():
                 form_e = get_form_e(descriptors, model, scaler)
             # tot_e = get_tote(form_e * std_formula.num_atoms, unmix_species)
-            tot_e = get_tote(structure_type, form_e * std_formula.num_atoms, unmix_species, oxides_table_path)
+            tot_e = get_tote(structure_type, form_e * std_formula.num_atoms, unmix_species)
             entry = prepare_entry(structure_type, tot_e, unmix_species)
             compat = MaterialsProjectCompatibility()
             entry = compat.process_entry(entry)
@@ -190,8 +196,10 @@ def filter_entries(structure_type, all_entries, species, return_removed=False):
                                    comparator=ElementComparator())
 
     if not PROTO:
-        PROTO = {"garnet": m.get_structure_by_material_id("mp-3050").get_primitive_structure(),
-                 "perovskite": m.get_structure_by_material_id("mp-4019").get_primitive_structure()}
+        garnet_proto_path = os.path.join(DATA_DIR, "garnet/proto_mp-3050.cif")
+        perov_proto_path = os.path.join(DATA_DIR, "perovskite/proto_mp-4019.cif")
+        PROTO = {"garnet": Structure.from_file(garnet_proto_path).get_primitive_structure(),
+                 "perovskite": Structure.from_file(perov_proto_path).get_primitive_structure()}
         a_sites = [60, 61, 62, 63, 64, 65, 66, 67]
         for site_ind in a_sites:
             PROTO['garnet'].replace(site_ind, {"Ga": 1})
@@ -233,6 +241,7 @@ def get_ehull(structure_type, tot_e, species,
     Returns:
         ehull (float): energy above hull.
     """
+
     formula = spe2form(structure_type, species)
     composition = Composition(formula)
     elements = [i.name for i in composition.elements]
@@ -246,12 +255,15 @@ def get_ehull(structure_type, tot_e, species,
             all_entries = get_entries_in_chemsy(entries_dict, elements)
 
     all_entries = filter_entries(structure_type, all_entries, species)
-    calc_entries_dict = CALC_ENTRIES[structure_type]
-    all_calc_entries = get_entries_in_chemsy(calc_entries_dict, elements)
-    compat = MaterialsProjectCompatibility()
-    all_calc_entries = compat.process_entries(all_calc_entries)
-    if all_calc_entries:
-        all_entries = all_entries + all_calc_entries
+
+    # For unmix: no need to find calc entries, for mix,
+    # calc entries were provided through unmix_entries
+    # calc_entries_dict = CALC_ENTRIES[structure_type]
+    # all_calc_entries = get_entries_in_chemsy(calc_entries_dict, elements)
+    # compat = MaterialsProjectCompatibility()
+    # all_calc_entries = compat.process_entries(all_calc_entries)
+    # if all_calc_entries:
+    #     all_entries = all_entries + all_calc_entries
 
     if not all_entries:
         raise ValueError("Incomplete")

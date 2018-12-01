@@ -4,7 +4,7 @@ import re
 
 import tensorflow as tf
 from keras.models import load_model
-from pymatgen import MPRester, Composition
+from pymatgen import Composition
 from pymatgen.core.periodic_table import get_el_sp
 from pymatgen.io.vasp.sets import _load_yaml_config
 
@@ -63,9 +63,6 @@ SITE_INFO = {'garnet': {'c': {"num_atoms": 3, "max_ordering": 20, "cn": "VIII"},
                         'd': {"num_atoms": 3, "max_ordering": 18, "cn": "IV"}},
              'perovskite': {'a': {"num_atoms": 2, "max_ordering": 10, 'cn': "XII"},
                             'b': {"num_atoms": 2, "max_ordering": 10, 'cn': "VI"}}}
-
-
-m = MPRester("xNebFpxTfLhTnnIH")
 
 MODELS = {}
 
@@ -132,6 +129,7 @@ def spe2form(structure_type, species):
     formula = formula.replace("1", "") + 'O%s' % num_oxy
     return formula
 
+
 def norm_species(structure_type, species):
     # sites = SITES[structure_type]
     # try:
@@ -151,8 +149,9 @@ def norm_species(structure_type, species):
         for spe, amt in species[site].items():
             if isinstance(spe, str):
                 spe = get_el_sp(spe)
-            norm_spec[site].update({spe: amt/SITE_INFO[structure_type][site]['num_atoms']})
+            norm_spec[site].update({spe: amt / SITE_INFO[structure_type][site]['num_atoms']})
     return norm_spec
+
 
 def parse_composition(structure_type, s, ctype):
     toks = s.strip().split()

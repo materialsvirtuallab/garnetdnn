@@ -6,12 +6,10 @@ from monty.serialization import loadfn
 from pymatgen import Composition
 from pymatgen.core.periodic_table import get_el_sp
 
-from garnetdnn.util import spe2form
-from pymatgen import MPRester
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../data")
-BINARY_OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxide_entries.json")
-BINARY_OXDIES_ENTRIES = loadfn(BINARY_OXIDES_PATH)
+OXIDES_PATH = os.path.join(DATA_DIR, "binary_oxides_entries_dict.json")
+BINARY_OXDIES_ENTRIES = loadfn(OXIDES_PATH)
 STD_FORMULA = {'garnet': Composition("C3A2D3O12"),
                "perovskite": Composition("A2B2O6")}
 SITES = {'garnet': ['c', 'a', 'd'],
@@ -21,9 +19,6 @@ SITE_INFO = {'garnet': {'c': {"num_atoms": 3, "max_ordering": 20, "cn": "VIII"},
                         'd': {"num_atoms": 3, "max_ordering": 18, "cn": "IV"}},
              'perovskite': {'a': {"num_atoms": 2, "max_ordering": 10, 'cn': "XII"},
                             'b': {"num_atoms": 2, "max_ordering": 10, 'cn': "VI"}}}
-
-m = MPRester("VIqD4QUxH6wNpyc5")
-
 
 def binary_encode(config, tot_configs):
     """
@@ -51,6 +46,7 @@ def _raw_input(input_spe, cn_specific, site_info):
         descriptors = [(get_el_sp(spe).ionic_radius, get_el_sp(spe).X) \
                        for spe, site in input_spe]
     return list(sum(descriptors, ()))
+
 
 def get_descriptor(structure_type, species, cn_specific=True,
                    unmix_expansion=None, config=None):
@@ -158,9 +154,8 @@ def get_form_e(descriptors, model, scaler, return_full=False):
         return form_e
 
 
-def get_tote(structure_type, form_e, species, oxides_table_path, debug=False):
-    # formula = spe2form(structure_type, species)
-    # composition = Composition(formula)
+def get_tote(structure_type, form_e, species, debug=False):
+
     spe_dict = Counter({})
     for site in SITE_INFO[structure_type]:
         spe_dict += Counter({spe.__str__(): round(SITE_INFO[structure_type][site]['num_atoms'] \
@@ -172,19 +167,12 @@ def get_tote(structure_type, form_e, species, oxides_table_path, debug=False):
     for el, amt in composition.items():
         if debug:
             print(el)
-        stable_ox_entry = None
         if el.symbol == 'O':
             continue
-        if el.symbol in BINARY_OXDIES_ENTRIES:
-            stable_ox_entry = BINARY_OXDIES_ENTRIES[el.symbol]
-
-        if not stable_ox_entry:
-            stable_ox_table = loadfn(oxides_table_path)
-            stable_ox_id = stable_ox_table[el.__str__()]['mpid']
-            stable_ox_entry = m.get_entry_by_material_id(
-                stable_ox_id,
-                property_data=['e_above_hull',
-                               'formation_energy_per_atom'])
+        if BINARY_OXDIES_ENTRIES.get(el.__str__()):
+            stable_ox_entry = BINARY_OXDIES_ENTRIES[el.__str__()]
+        else:
+            raise ValueError("No binary oxide entry for %s" % el.__str__())
         min_e = stable_ox_entry.uncorrected_energy
         amt_ox = stable_ox_entry.composition[el.name]
         tote += (amt / amt_ox) * min_e

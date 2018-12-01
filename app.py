@@ -1,13 +1,10 @@
 import re
 
-import os
-
 from flask import render_template, make_response, request, Flask
 import tensorflow as tf
 from garnetdnn.ehull import get_decomposed_entries, get_ehull
 from garnetdnn.formation_energy import get_descriptor, get_form_e, get_tote
 from garnetdnn.util import load_model_and_scaler, spe2form, html_formula, parse_composition
-import time
 from collections import OrderedDict
 
 app = Flask(__name__)
@@ -27,7 +24,6 @@ def index():
 @app.route('/query', methods=['GET'])
 def query():
     try:
-        t0 = time.time()
         structure_type = 'garnet'
         c_string = request.args.get("c_string")
         a_string = request.args.get("a_string")
@@ -65,31 +61,21 @@ def query():
                 form_e = response['form_e']
                 decomp = response['decomp']
                 ehull = response['ehull']
-                # print("Read from Cache")
             else:  # Cache miss
                 with tf.Session() as sess:
-
-                    oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                    "data/garnet_oxi_table.json")
                     model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
                         else load_model_and_scaler(structure_type, "unmix")
                     inputs = get_descriptor(structure_type, species)
-
                     with graph.as_default():
                         form_e = get_form_e(inputs, model, scaler) * 20
-
-                    tot_e = get_tote(structure_type, form_e, species,
-                                     oxides_table_path=oxide_table_path)
-
+                    tot_e = get_tote(structure_type, form_e, species)
                     if mix_site:
                         decompose_entries = get_decomposed_entries(structure_type,
-                                                                   species,
-                                                                   oxide_table_path)
+                                                                   species)
                         decomp, ehull = get_ehull(structure_type, tot_e, species,
                                                   unmix_entries=decompose_entries)
                     else:
                         decomp, ehull = get_ehull(structure_type, tot_e, species)
-
                 response = {"form_e": form_e, "decomp": decomp, "ehull": ehull}
                 if len(ResponseCache) > MAX_CACHE:
                     ResponseCache.popitem(last=False)
@@ -116,7 +102,6 @@ def query():
             message = "Not charge neutral! Total charge = %.0f" % charge
     except Exception as ex:
         message = str(ex)
-    print("Time of this query: %s" % (time.time() - t0))
     return make_response(render_template(
         'index.html',
         c_string=c_string, a_string=a_string, d_string=d_string,
@@ -134,7 +119,6 @@ def perovskite_index():
 @app.route('/perovskite_query')
 def perovskite_query():
     try:
-        t0 = time.time()
         structure_type = 'perovskite'
         a_string = request.args.get("a_string")
         b_string = request.args.get("b_string")
@@ -164,11 +148,9 @@ def perovskite_query():
                 form_e = response['form_e']
                 decomp = response['decomp']
                 ehull = response['ehull']
-                print("Read from Cache")
+
             else:  # Cache miss
                 with tf.Session() as sess:
-                    oxide_table_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                    "data/perovskite_oxi_table.json")
                     model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
                         else load_model_and_scaler(structure_type, "unmix")
                     inputs = get_descriptor(structure_type, species, cn_specific=False)
@@ -177,12 +159,10 @@ def perovskite_query():
                     # form_e predicted from model is always in /atom
                     # the get_tote func always returns the tote with in /standard fu
                     # which is A2B2O6, 10 atoms
-                    tot_e = get_tote(structure_type, form_e, species,
-                                     oxides_table_path=oxide_table_path)
+                    tot_e = get_tote(structure_type, form_e, species)
                     if mix_site:
                         decompose_entries = get_decomposed_entries(structure_type,
-                                                                   species,
-                                                                   oxide_table_path)
+                                                                   species)
                         decomp, ehull = get_ehull(structure_type, tot_e, species,
                                                   unmix_entries=decompose_entries)
                     else:
@@ -212,7 +192,7 @@ def perovskite_query():
             message = "Not charge neutral! Total charge = %.0f" % charge
     except Exception as ex:
         message = str(ex)
-    print("Time of this query: %s" % (time.time() - t0))
+
     return make_response(render_template(
         'index_perov.html',
         a_string=a_string, b_string=b_string,
