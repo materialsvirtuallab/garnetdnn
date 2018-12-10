@@ -1,6 +1,6 @@
 Flask==1.0.2
 ruamel.yaml==0.15.61
-monty==1.0.3
+monty==1.0.4
 pymatgen==2018.9.12
 scikit-learn==0.19.2
 tensorflow==1.9.0
