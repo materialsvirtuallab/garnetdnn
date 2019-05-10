@@ -21,7 +21,12 @@ def index():
     return make_response(render_template('index.html'))
 
 
-@app.route('/query', methods=['GET'])
+@app.route('/garnet', methods=['GET'])
+def index():
+    return make_response(render_template('index.html'))
+
+
+@app.route('/garnet_query', methods=['GET'])
 def query():
     try:
         structure_type = 'garnet'
