@@ -22,12 +22,12 @@ def index():
 
 
 @app.route('/garnet', methods=['GET'])
-def index():
+def garnet_index():
     return make_response(render_template('index.html'))
 
 
 @app.route('/garnet_query', methods=['GET'])
-def query():
+def garnet_query():
     try:
         structure_type = 'garnet'
         c_string = request.args.get("c_string")
