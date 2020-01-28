@@ -3,7 +3,7 @@ ruamel.yaml==0.16.5
 monty==2.0.6
 pymatgen==2019.8.23
 scikit-learn==0.21.2
-tensorflow==1.15.0
+tensorflow==1.15.2
 keras==2.2.4
 h5py==2.9.0
 pandas==0.25.0
