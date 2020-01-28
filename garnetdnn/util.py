@@ -87,13 +87,12 @@ def load_model_and_scaler(structure_type, model_type):
                              "../models/%s" % structure_type)
     model = load_model(os.path.join(MODEL_DIR,
                                     "model_%s.h5" % model_type))
-    graph = tf.get_default_graph()
+    # graph = tf.get_default_graph()
     with open(os.path.join(MODEL_DIR,
                            "scaler_%s.pkl" % model_type), "rb") as f:
         scaler = pickle.load(f)
 
-    return model, scaler, graph
-
+    return model, scaler
 
 def html_formula(f):
     return re.sub(r"([\d.]+)", r"<sub>\1</sub>", f)

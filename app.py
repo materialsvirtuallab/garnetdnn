@@ -67,20 +67,18 @@ def garnet_query():
                 decomp = response['decomp']
                 ehull = response['ehull']
             else:  # Cache miss
-                with tf.Session() as sess:
-                    model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
-                        else load_model_and_scaler(structure_type, "unmix")
-                    inputs = get_descriptor(structure_type, species)
-                    with graph.as_default():
-                        form_e = get_form_e(inputs, model, scaler) * 20
-                    tot_e = get_tote(structure_type, form_e, species)
-                    if mix_site:
-                        decompose_entries = get_decomposed_entries(structure_type,
-                                                                   species)
-                        decomp, ehull = get_ehull(structure_type, tot_e, species,
-                                                  unmix_entries=decompose_entries)
-                    else:
-                        decomp, ehull = get_ehull(structure_type, tot_e, species)
+                model, scaler = load_model_and_scaler(structure_type, mix_site) if mix_site \
+                    else load_model_and_scaler(structure_type, "unmix")
+                inputs = get_descriptor(structure_type, species)
+                form_e = get_form_e(inputs, model, scaler) * 20
+                tot_e = get_tote(structure_type, form_e, species)
+                if mix_site:
+                    decompose_entries = get_decomposed_entries(structure_type,
+                                                               species)
+                    decomp, ehull = get_ehull(structure_type, tot_e, species,
+                                              unmix_entries=decompose_entries)
+                else:
+                    decomp, ehull = get_ehull(structure_type, tot_e, species)
                 response = {"form_e": form_e, "decomp": decomp, "ehull": ehull}
                 if len(ResponseCache) > MAX_CACHE:
                     ResponseCache.popitem(last=False)
@@ -155,12 +153,10 @@ def perovskite_query():
                 ehull = response['ehull']
 
             else:  # Cache miss
-                with tf.Session() as sess:
-                    model, scaler, graph = load_model_and_scaler(structure_type, mix_site) if mix_site \
+                    model, scaler= load_model_and_scaler(structure_type, mix_site) if mix_site \
                         else load_model_and_scaler(structure_type, "unmix")
                     inputs = get_descriptor(structure_type, species, cn_specific=False)
-                    with graph.as_default():
-                        form_e = get_form_e(inputs, model, scaler) * 10
+                    form_e = get_form_e(inputs, model, scaler) * 10
                     # form_e predicted from model is always in /atom
                     # the get_tote func always returns the tote with in /standard fu
                     # which is A2B2O6, 10 atoms

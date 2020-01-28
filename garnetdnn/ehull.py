@@ -101,7 +101,7 @@ def get_decomposed_entries(structure_type, species):
                     yield spe_copy
 
     decompose_entries = []
-    model, scaler, graph = load_model_and_scaler(structure_type, "unmix")
+    model, scaler = load_model_and_scaler(structure_type, "unmix")
     std_formula = STD_FORMULA[structure_type]
     for unmix_species in decomposed(species):
         charge = sum([spe.oxi_state * amt * SITE_INFO[structure_type][site]["num_atoms"]
@@ -127,8 +127,7 @@ def get_decomposed_entries(structure_type, species):
             cn_specific = True if structure_type == 'garnet' else False
             descriptors = get_descriptor(structure_type, unmix_species,
                                          cn_specific=cn_specific)
-            with graph.as_default():
-                form_e = get_form_e(descriptors, model, scaler)
+            form_e = get_form_e(descriptors, model, scaler)
             # tot_e = get_tote(form_e * std_formula.num_atoms, unmix_species)
             tot_e = get_tote(structure_type, form_e * std_formula.num_atoms, unmix_species)
             entry = prepare_entry(structure_type, tot_e, unmix_species)
