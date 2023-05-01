@@ -1,4 +1,4 @@
-Flask==2.2.0
+Flask==2.3.2
 ruamel.yaml==0.17.21
 monty==2022.4.26
 pymatgen==2022.5.26
